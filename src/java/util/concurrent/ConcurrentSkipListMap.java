@@ -820,10 +820,10 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             throw new NullPointerException();
         Comparator<? super K> cmp = comparator;
         outer: for (;;) {
-            for (Node<K,V> b = findPredecessor(key, cmp), n = b.next;;) {
+            for (Node<K,V> b = findPredecessor(key, cmp), n = b.next;;) { // n是b的next
                 if (n != null) {
                     Object v; int c;
-                    Node<K,V> f = n.next;
+                    Node<K,V> f = n.next; // f是n的next
                     if (n != b.next)               // inconsistent read
                         break;
                     if ((v = n.value) == null) {   // n is deleted
@@ -832,12 +832,12 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                     }
                     if (b.value == null || v == n) // b is deleted
                         break;
-                    if ((c = cpr(cmp, key, n.key)) > 0) {
+                    if ((c = cpr(cmp, key, n.key)) > 0) { // 查找的key大于后续节点的key,向后续节点推进 比如key=2  n.key=0  (本来n是b的next  本来f是n的next)
                         b = n;
                         n = f;
                         continue;
                     }
-                    if (c == 0) {
+                    if (c == 0) { // 查找的key等于后续节点的key
                         if (onlyIfAbsent || n.casValue(v, value)) {
                             @SuppressWarnings("unchecked") V vv = (V)v;
                             return vv;
@@ -853,33 +853,33 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 break outer;
             }
         }
-
-        int rnd = ThreadLocalRandom.nextSecondarySeed();
+        // 到此时表示已经节点已经put成功了，但对于跳表来说，来要根据随机数的值来表示是否向上增加层数与上层节点
+        int rnd = ThreadLocalRandom.nextSecondarySeed(); // 获取一个伪随机的种子
         if ((rnd & 0x80000001) == 0) { // test highest and lowest bits
-            int level = 1, max;
+            int level = 1, max; // 这里由于是随机值，所以层数level是不确定的
             while (((rnd >>>= 1) & 1) != 0)
                 ++level;
             Index<K,V> idx = null;
-            HeadIndex<K,V> h = head;
-            if (level <= (max = h.level)) {
-                for (int i = 1; i <= level; ++i)
-                    idx = new Index<K,V>(z, idx, null);
+            HeadIndex<K,V> h = head; //获取头索引head
+            if (level <= (max = h.level)) { //如果level小于等于头索引的层数
+                for (int i = 1; i <= level; ++i) // 根据层数level不断创建新增节点的下层索引
+                    idx = new Index<K,V>(z, idx, null);  // 注意此时只是新增了新节点的索引，并没有关联到跳表的真实体中
             }
-            else { // try to grow by one level
+            else { // try to grow by one level   //如果层数level大于头索引的层数
                 level = max + 1; // hold in array and later pick the one to use
                 @SuppressWarnings("unchecked")Index<K,V>[] idxs =
                     (Index<K,V>[])new Index<?,?>[level+1];
-                for (int i = 1; i <= level; ++i)
-                    idxs[i] = idx = new Index<K,V>(z, idx, null);
+                for (int i = 1; i <= level; ++i) //根据层数level不断创建新增节点的下层索引,并放入数组中
+                    idxs[i] = idx = new Index<K,V>(z, idx, null); // 此时只是新增了新节点的索引，并没有关联到跳表的真实体中
                 for (;;) {
-                    h = head;
-                    int oldLevel = h.level;
-                    if (level <= oldLevel) // lost race to add level
+                    h = head; // 获取头索引
+                    int oldLevel = h.level;  //  获取头索引层数
+                    if (level <= oldLevel) // lost race to add level 如果level小于等于oldLevel，说明已经有其他线程修改了头索引的层数，退出循环
                         break;
-                    HeadIndex<K,V> newh = h;
-                    Node<K,V> oldbase = h.node;
-                    for (int j = oldLevel+1; j <= level; ++j)
-                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j);
+                    HeadIndex<K,V> newh = h;  //定义一个新的头索引，取值h
+                    Node<K,V> oldbase = h.node; // 获取头索引的节点
+                    for (int j = oldLevel+1; j <= level; ++j) //该段代码的意思其实只是新增一层新链表，这一层新链表以原头索引为下层索引，新增节点索引为链表后续索引，所以这
+                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j); // 接上面　一层新链表只有头索引和新增节点的索引两个索引，但由于有多个线程的参与，该循环体可能会不断执行
                     if (casHead(h, newh)) {
                         h = newh;
                         idx = idxs[level = oldLevel];
