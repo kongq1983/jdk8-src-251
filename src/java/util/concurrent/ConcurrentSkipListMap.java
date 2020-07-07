@@ -820,7 +820,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             throw new NullPointerException();
         Comparator<? super K> cmp = comparator;
         outer: for (;;) {
-            for (Node<K,V> b = findPredecessor(key, cmp), n = b.next;;) { // n是b的next
+            for (Node<K,V> b = findPredecessor(key, cmp), n = b.next;;) { // n是b的next 返回小于指定的key的base-level节点(level=1)
                 if (n != null) {
                     Object v; int c;
                     Node<K,V> f = n.next; // f是n的next
@@ -848,7 +848,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 }
 
                 z = new Node<K,V>(key, value, n);
-                if (!b.casNext(n, z)) // b的next节点，将z节点替换n节点
+                if (!b.casNext(n, z)) // b.next=z  z.next=n  中间插了个z节点(以前是b.next=n)
                     break;         // 竞争失败的线程，重新进入 restart if lost race to append to b
                 break outer;
             }
@@ -862,14 +862,14 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             Index<K,V> idx = null;
             HeadIndex<K,V> h = head; //获取头索引head
             if (level <= (max = h.level)) { //如果level小于等于头索引的层数
-                for (int i = 1; i <= level; ++i) // 根据层数level不断创建新增节点的下层索引
-                    idx = new Index<K,V>(z, idx, null);  // 构建一个从 1 到 level 的纵列 index 结点引用
+                for (int i = 1; i <= level; ++i) // 根据层数level不断创建新增节点的下层索引  2的down是1   3的down是2
+                    idx = new Index<K,V>(z, idx, null);  // 构建一个从 1 到 level 的纵列 index 结点引用  此时只是新增了新节点的索引，并没有关联到跳表的真实体中
             }
             else { // try to grow by one level   需要新增一个 level 层
                 level = max + 1; // hold in array and later pick the one to use
                 @SuppressWarnings("unchecked")Index<K,V>[] idxs =
                     (Index<K,V>[])new Index<?,?>[level+1];
-                for (int i = 1; i <= level; ++i) //根据层数level不断创建新增节点的下层索引,并放入数组中
+                for (int i = 1; i <= level; ++i) //根据层数level不断创建新增节点的下层索引,并放入数组中  2的down是1   3的down是2
                     idxs[i] = idx = new Index<K,V>(z, idx, null); // 此时只是新增了新节点的索引，并没有关联到跳表的真实体中
                 for (;;) {
                     h = head; // 获取头索引
