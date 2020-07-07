@@ -613,7 +613,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
          * @return true if successful
          */
         final boolean unlink(Index<K,V> succ) {
-            return node.value != null && casRight(succ, succ.right);
+            return node.value != null && casRight(succ, succ.right); //前索引的节点的value是否为null,以及用后索引替换前索引是否成功
         }
 
         // Unsafe mechanics
@@ -658,7 +658,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
     /* ---------------- Traversal -------------- */
 
     /**
-     * Returns a base-level node with key strictly less than given key,
+     * Returns a base-level node with key strictly less than given key, 返回小于指定的key的base-level节点(level=1)
      * or the base-level header if there is no such node.  Also
      * unlinks indexes to deleted nodes found along the way.  Callers
      * rely on this side-effect of clearing indices to deleted nodes.
@@ -668,27 +668,27 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
     private Node<K,V> findPredecessor(Object key, Comparator<? super K> cmp) {
         if (key == null)
             throw new NullPointerException(); // don't postpone errors
-        for (;;) {
-            for (Index<K,V> q = head, r = q.right, d;;) {
-                if (r != null) {
-                    Node<K,V> n = r.node;
+        for (;;) { // 最大的level是head  获取原始头索引以及该头索引的链表后续索引，当ConcurrentSkipListMap刚初始化的时候，r为null
+            for (Index<K,V> q = head, r = q.right, d;;) { // //但是我们查找肯定不会在空的跳表中查找，所以我们认定头索引的后续索引r不为null
+                if (r != null) { // //如果链表后续索引不为null
+                    Node<K,V> n = r.node;  //获取链表后续索引的节点
                     K k = n.key;
                     if (n.value == null) {
-                        if (!q.unlink(r))
+                        if (!q.unlink(r)) //删除空值索引，即把r的后续索引顶替掉r 如果无锁竞争失败，即多个线程都在删空索引，只有一个线程能删成功
                             break;           // restart
-                        r = q.right;         // reread r
+                        r = q.right;         // reread r 无锁竞争成功，空值索引被成功删除，重新获取r值，并跳过后续代码
                         continue;
                     }
-                    if (cpr(cmp, key, k) > 0) {
+                    if (cpr(cmp, key, k) > 0) { // 如果该节点的值value不为null,且查找的key值大于该节点的key值 向后续索引推进
                         q = r;
                         r = r.right;
                         continue;
                     }
                 }
-                if ((d = q.down) == null)
-                    return q.node;
-                q = d;
-                r = d.right;
+                if ((d = q.down) == null) //只有level=1  q.down=null
+                    return q.node; // 返回q的节点  第一次是:BASE_HEADER level=1
+                q = d; //把q.down赋给q  下层索引赋给q
+                r = d.right; //下层索引的right赋给r
             }
         }
     }
@@ -824,7 +824,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 if (n != null) {
                     Object v; int c;
                     Node<K,V> f = n.next; // f是n的next
-                    if (n != b.next)               // inconsistent read
+                    if (n != b.next)               // inconsistent read 被其他线程改过了
                         break;
                     if ((v = n.value) == null) {   // n is deleted
                         n.helpDelete(b, f);
@@ -833,8 +833,8 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                     if (b.value == null || v == n) // b is deleted
                         break;
                     if ((c = cpr(cmp, key, n.key)) > 0) { // 查找的key大于后续节点的key,向后续节点推进 比如key=2  n.key=0  (本来n是b的next  本来f是n的next)
-                        b = n;
-                        n = f;
+                        b = n; // 向后续节点推进
+                        n = f; // 向后续节点推进
                         continue;
                     }
                     if (c == 0) { // 查找的key等于后续节点的key
@@ -848,24 +848,24 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 }
 
                 z = new Node<K,V>(key, value, n);
-                if (!b.casNext(n, z))
-                    break;         // restart if lost race to append to b
+                if (!b.casNext(n, z)) // b的next节点，将z节点替换n节点
+                    break;         // 竞争失败的线程，重新进入 restart if lost race to append to b
                 break outer;
             }
-        }
+        } // 0x80000001  16进制  8*16的7次方+1=2,147,483,649   二进制=1000 0000 0000 0000 0000 0000 0000 0001
         // 到此时表示已经节点已经put成功了，但对于跳表来说，来要根据随机数的值来表示是否向上增加层数与上层节点
         int rnd = ThreadLocalRandom.nextSecondarySeed(); // 获取一个伪随机的种子
-        if ((rnd & 0x80000001) == 0) { // test highest and lowest bits
-            int level = 1, max; // 这里由于是随机值，所以层数level是不确定的
+        if ((rnd & 0x80000001) == 0) { // test highest and lowest bits  1000 0000 0000 0000 0000 0000 0000 0001
+            int level = 1, max; // 用低位连续为 1 的个数作为 level 的值，也是一种概率策略，所以层数level是不确定的
             while (((rnd >>>= 1) & 1) != 0)
                 ++level;
             Index<K,V> idx = null;
             HeadIndex<K,V> h = head; //获取头索引head
             if (level <= (max = h.level)) { //如果level小于等于头索引的层数
                 for (int i = 1; i <= level; ++i) // 根据层数level不断创建新增节点的下层索引
-                    idx = new Index<K,V>(z, idx, null);  // 注意此时只是新增了新节点的索引，并没有关联到跳表的真实体中
+                    idx = new Index<K,V>(z, idx, null);  // 构建一个从 1 到 level 的纵列 index 结点引用
             }
-            else { // try to grow by one level   //如果层数level大于头索引的层数
+            else { // try to grow by one level   需要新增一个 level 层
                 level = max + 1; // hold in array and later pick the one to use
                 @SuppressWarnings("unchecked")Index<K,V>[] idxs =
                     (Index<K,V>[])new Index<?,?>[level+1];
@@ -878,8 +878,8 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                         break;
                     HeadIndex<K,V> newh = h;  //定义一个新的头索引，取值h
                     Node<K,V> oldbase = h.node; // 获取头索引的节点
-                    for (int j = oldLevel+1; j <= level; ++j) //该段代码的意思其实只是新增一层新链表，这一层新链表以原头索引为下层索引，新增节点索引为链表后续索引，所以这
-                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j); // 接上面　一层新链表只有头索引和新增节点的索引两个索引，但由于有多个线程的参与，该循环体可能会不断执行
+                    for (int j = oldLevel+1; j <= level; ++j) //正常情况下，循环只会执行一次，如果由于其他线程的并发操作导致 oldLevel 的值不稳定，那么会执行多次循环体
+                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j); //
                     if (casHead(h, newh)) {
                         h = newh;
                         idx = idxs[level = oldLevel];
@@ -887,43 +887,43 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                     }
                 }
             }
-            // find insertion points and splice in
+            // find insertion points and splice in 获取level
             splice: for (int insertionLevel = level;;) {
-                int j = h.level;
+                int j = h.level; //获取头索引的层数
                 for (Index<K,V> q = h, r = q.right, t = idx;;) {
-                    if (q == null || t == null)
+                    if (q == null || t == null) // 其他线程并发操作导致头结点被删除，直接退出外层循环
                         break splice;
-                    if (r != null) {
+                    if (r != null) { //
                         Node<K,V> n = r.node;
                         // compare before deletion check avoids needing recheck
                         int c = cpr(cmp, key, n.key);
-                        if (n.value == null) {
+                        if (n.value == null) { //如果 n 正在被其他线程删除，那么调用 unlink 去删除它
                             if (!q.unlink(r))
                                 break;
                             r = q.right;
                             continue;
                         }
-                        if (c > 0) {
+                        if (c > 0) { // 插入的key大于n的key,继续向后续推进
                             q = r;
                             r = r.right;
                             continue;
                         }
                     }
 
-                    if (j == insertionLevel) {
-                        if (!q.link(r, t))
+                    if (j == insertionLevel) { //如果j为跳表原层数
+                        if (!q.link(r, t)) // 尝试着将 t 插在 q 和 r 之间，如果失败了，退出内循环重试
                             break; // restart
-                        if (t.node.value == null) {
+                        if (t.node.value == null) { // 如果新增节点的值为null，表示该节点已经被其他线程删除，结束循环
                             findNode(key);
                             break splice;
                         }
-                        if (--insertionLevel == 0)
+                        if (--insertionLevel == 0) //插入层逐层自减，当为最底层时退出循环
                             break splice;
                     }
 
-                    if (--j >= insertionLevel && j < level)
+                    if (--j >= insertionLevel && j < level) // 其他节点随着插入节点的层数下移
                         t = t.down;
-                    q = q.down;
+                    q = q.down; // 新节点在当前层次的前后引用关系已经被链接完成，现在处理下一层
                     r = q.right;
                 }
             }
