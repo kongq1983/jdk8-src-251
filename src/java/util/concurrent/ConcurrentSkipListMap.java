@@ -680,14 +680,14 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                         continue;
                     }
                     if (cpr(cmp, key, k) > 0) { // 如果该节点的值value不为null,且查找的key值大于该节点的key值 向后续索引推进
-                        q = r;
+                        q = r; //向右
                         r = r.right;
                         continue;
                     }
-                }
+                } // key 小于n.key的时候 或者右边节点为空q.right=null 会向下走
                 if ((d = q.down) == null) //只有level=1  q.down=null
                     return q.node; // 返回q的节点  第一次是:BASE_HEADER level=1
-                q = d; //把q.down赋给q  下层索引赋给q
+                q = d; //把q.down赋给q  下层索引赋给q 向下
                 r = d.right; //下层索引的right赋给r
             }
         }
@@ -777,12 +777,12 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
         if (key == null)
             throw new NullPointerException();
         Comparator<? super K> cmp = comparator;
-        outer: for (;;) {
+        outer: for (;;) { //n=b.next   f=n.next 最初n是中间节点
             for (Node<K,V> b = findPredecessor(key, cmp), n = b.next;;) {
                 Object v; int c;
                 if (n == null)
-                    break outer;
-                Node<K,V> f = n.next;
+                    break outer;  //找不到  这里退出
+                Node<K,V> f = n.next; //f: successor
                 if (n != b.next)                // inconsistent read
                     break;
                 if ((v = n.value) == null) {    // n is deleted
@@ -797,8 +797,8 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                 }
                 if (c < 0)
                     break outer;
-                b = n;
-                n = f;
+                b = n; // b: predecessor
+                n = f; // n: node
             }
         }
         return null;
