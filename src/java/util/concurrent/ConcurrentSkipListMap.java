@@ -657,7 +657,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
 
     /* ---------------- Traversal -------------- */
 
-    /**
+    /** 返回基级节点
      * Returns a base-level node with key strictly less than given key, 返回小于指定的key的base-level节点(level=1)
      * or the base-level header if there is no such node.  Also
      * unlinks indexes to deleted nodes found along the way.  Callers
@@ -821,7 +821,7 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
         Comparator<? super K> cmp = comparator;
         outer: for (;;) {
             for (Node<K,V> b = findPredecessor(key, cmp), n = b.next;;) { // n是b的next 返回小于指定的key的base-level节点(level=1)
-                if (n != null) {
+                if (n != null) { // n是b.next
                     Object v; int c;
                     Node<K,V> f = n.next; // f是n的next
                     if (n != b.next)               // inconsistent read 被其他线程改过了
@@ -847,8 +847,8 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                     // else c < 0; fall through
                 }
 
-                z = new Node<K,V>(key, value, n);
-                if (!b.casNext(n, z)) // b.next=z  z.next=n  中间插了个z节点(以前是b.next=n)
+                z = new Node<K,V>(key, value, n); //添加数据节点
+                if (!b.casNext(n, z)) // b和n中间插了个z节点(以前是b.next=n)
                     break;         // 竞争失败的线程，重新进入 restart if lost race to append to b
                 break outer;
             }
@@ -862,15 +862,15 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
             Index<K,V> idx = null;
             HeadIndex<K,V> h = head; //获取头索引head
             if (level <= (max = h.level)) { //如果level小于等于头索引的层数
-                for (int i = 1; i <= level; ++i) // 根据层数level不断创建新增节点的下层索引  2的down是1   3的down是2
-                    idx = new Index<K,V>(z, idx, null);  // 构建一个从 1 到 level 的纵列 index 结点引用  此时只是新增了新节点的索引，并没有关联到跳表的真实体中
-            }
+                for (int i = 1; i <= level; ++i) // 创建1-level层的索引  根据层数level不断创建新增节点的上层索引  从1开始创建  2的down是1   3的down是2
+                    idx = new Index<K,V>(z, idx, null);  // node,down,right 构建一个从 1 到 level 的纵列 index 结点引用  此时只是新增了新节点的索引，并没有关联到跳表的真实体中
+            } // 上次创建的idx，当作本次的down
             else { // try to grow by one level   需要新增一个 level 层
                 level = max + 1; // hold in array and later pick the one to use
                 @SuppressWarnings("unchecked")Index<K,V>[] idxs =
                     (Index<K,V>[])new Index<?,?>[level+1];
                 for (int i = 1; i <= level; ++i) //根据层数level不断创建新增节点的下层索引,并放入数组中  2的down是1   3的down是2
-                    idxs[i] = idx = new Index<K,V>(z, idx, null); // 此时只是新增了新节点的索引，并没有关联到跳表的真实体中
+                    idxs[i] = idx = new Index<K,V>(z, idx, null); // node节点都是同一个z, 此时只是新增了新节点的索引，并没有关联到跳表的真实体中
                 for (;;) {
                     h = head; // 获取头索引
                     int oldLevel = h.level;  //  获取头索引层数
@@ -879,21 +879,21 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                     HeadIndex<K,V> newh = h;  //定义一个新的头索引，取值h
                     Node<K,V> oldbase = h.node; // 获取头索引的节点
                     for (int j = oldLevel+1; j <= level; ++j) //正常情况下，循环只会执行一次，如果由于其他线程的并发操作导致 oldLevel 的值不稳定，那么会执行多次循环体
-                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j); //
-                    if (casHead(h, newh)) {
+                        newh = new HeadIndex<K,V>(oldbase, newh, idxs[j], j); //创建新的头索引(node,down,right,level) 从上往下创建  比如现在level=2 ，会创建1个level=3的索引
+                    if (casHead(h, newh)) { //设置新的head节点  headIndex
                         h = newh;
-                        idx = idxs[level = oldLevel];
+                        idx = idxs[level = oldLevel];  // 注意: 这里level被设置成老的level
                         break;
                     }
                 }
             }
-            // find insertion points and splice in 获取level
+            // find insertion points and splice in 获取level  本来leven=3 ,这里 level = oldLevel 又是2了
             splice: for (int insertionLevel = level;;) {
                 int j = h.level; //获取头索引的层数
-                for (Index<K,V> q = h, r = q.right, t = idx;;) {
+                for (Index<K,V> q = h, r = q.right, t = idx;;) { //这里插入的都是上面的idx，如果level大于1的，则下一层插入的是idx.down
                     if (q == null || t == null) // 其他线程并发操作导致头结点被删除，直接退出外层循环
                         break splice;
-                    if (r != null) { //
+                    if (r != null) { //right=null ，也就是没有右边索引
                         Node<K,V> n = r.node;
                         // compare before deletion check avoids needing recheck
                         int c = cpr(cmp, key, n.key);
@@ -910,8 +910,8 @@ public class ConcurrentSkipListMap<K,V> extends AbstractMap<K,V>
                         }
                     }
 
-                    if (j == insertionLevel) { //如果j为跳表原层数
-                        if (!q.link(r, t)) // 尝试着将 t 插在 q 和 r 之间，如果失败了，退出内循环重试
+                    if (j == insertionLevel) { //从上往下插减  每层插入t
+                        if (!q.link(r, t)) // right节点 尝试着将 t 插在 q 和 r 之间( q.right=t  t.right=r)，如果失败了，退出内循环重试
                             break; // restart
                         if (t.node.value == null) { // 如果新增节点的值为null，表示该节点已经被其他线程删除，结束循环
                             findNode(key);
