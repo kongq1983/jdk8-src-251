@@ -534,11 +534,11 @@ public class TreeMap<K,V>
      */
     public V put(K key, V value) {
         Entry<K,V> t = root;
-        if (t == null) {
+        if (t == null) { // 根节点为空
             compare(key, key); // type (and possibly null) check
 
-            root = new Entry<>(key, value, null);
-            size = 1;
+            root = new Entry<>(key, value, null); // 创建根节点 赋值给root
+            size = 1; //size=1
             modCount++;
             return null;
         }
@@ -560,25 +560,25 @@ public class TreeMap<K,V>
         }
         else {
             if (key == null)
-                throw new NullPointerException();
+                throw new NullPointerException(); //treeMap的key不能等于null
             @SuppressWarnings("unchecked")
                 Comparable<? super K> k = (Comparable<? super K>) key;
             do {
-                parent = t;
+                parent = t; //从root开始  第一次是root
                 cmp = k.compareTo(t.key);
-                if (cmp < 0)
-                    t = t.left;
+                if (cmp < 0) //put的key，小于t的key
+                    t = t.left; // 把t设置t的左节点(也就是下一次和当前t的左节点比较)
                 else if (cmp > 0)
-                    t = t.right;
+                    t = t.right; // 把t设置t的右节点(也就是下一次和当前t的右节点比较)
                 else
-                    return t.setValue(value);
+                    return t.setValue(value); // key相等，设置新的值
             } while (t != null);
         }
         Entry<K,V> e = new Entry<>(key, value, parent);
         if (cmp < 0)
-            parent.left = e;
+            parent.left = e; //左节点是e
         else
-            parent.right = e;
+            parent.right = e;//右节点是e
         fixAfterInsertion(e);
         size++;
         modCount++;
@@ -2217,66 +2217,66 @@ public class TreeMap<K,V>
         return (p == null) ? null: p.right;
     }
 
-    /** From CLR */
+    /** From CLR */  // p.right的右节点提升父节点   p变成新父节点的左节点  以前的叶子左节点(p.right.left)变成p.右节点  左旋(左叶子节点p.right.left放到p.right)
     private void rotateLeft(Entry<K,V> p) {
         if (p != null) {
-            Entry<K,V> r = p.right;
-            p.right = r.left;
+            Entry<K,V> r = p.right; //r=p.右节点  (p.right将要变成父节点)
+            p.right = r.left; // 左旋(左叶子节点p.right.left放到p.right)
             if (r.left != null)
                 r.left.parent = p;
-            r.parent = p.parent;
-            if (p.parent == null)
-                root = r;
-            else if (p.parent.left == p)
-                p.parent.left = r;
-            else
-                p.parent.right = r;
-            r.left = p;
-            p.parent = r;
+            r.parent = p.parent; // 左旋 修改右节点的父节点为p.parent
+            if (p.parent == null) // 以前p是根节点
+                root = r; // 把以前p的右节点设置为根节点
+            else if (p.parent.left == p) //以前p是左节点
+                p.parent.left = r; // 把p替换r (p父节点的左节点替换为r)
+            else //以前p是右节点
+                p.parent.right = r; // 把p替换r (p父节点的右节点替换为r)
+            r.left = p;  // 修改关联关系  把r.left指向p  左旋
+            p.parent = r; // 修改关联关系  p的父节点指向r
         }
     }
 
-    /** From CLR */
-    private void rotateRight(Entry<K,V> p) {
+    /** From CLR */  //p.left变成父节点  p变成新父节点的右节点  以前的节点右节点变成p.左节点 右旋(右叶子节点p.left.right变成p.left)
+    private void rotateRight(Entry<K,V> p) { // 右旋 把p.left 当作父节点
         if (p != null) {
-            Entry<K,V> l = p.left;
-            p.left = l.right;
-            if (l.right != null) l.right.parent = p;
-            l.parent = p.parent;
+            Entry<K,V> l = p.left; //l=p.左节点(l将要变成父节点)
+            p.left = l.right; // p.左节点=p.左节点的右节点  p.left=p.left.right
+            if (l.right != null) l.right.parent = p; //p的【孙子右节点】不为空，则把p的【孙子右节点】的父节点指向p  【孙子右节点】当作以前父节点的左节点
+            l.parent = p.parent;  // p.left提升为父节点
             if (p.parent == null)
-                root = l;
-            else if (p.parent.right == p)
-                p.parent.right = l;
-            else p.parent.left = l;
-            l.right = p;
-            p.parent = l;
+                root = l; // 如果p没有上级节点 则root设置p.left
+            else if (p.parent.right == p)  //p以前是右节点
+                p.parent.right = l; //则p.parent新的右节点指向l
+            else p.parent.left = l;  //p 以前是左节点 则p.parent新的左节点指向l
+            l.right = p;  // l新的右节点指向p
+            p.parent = l; // p的新的父节点指向l (也就是以前p.left)
         }
     }
 
-    /** From CLR */
+    /** From CLR */ // 1. 不是root节点情况下，父节点是红节点，才进入条件 2. 判断x.父节点是左节点还是右节点
     private void fixAfterInsertion(Entry<K,V> x) {
-        x.color = RED;
-
-        while (x != null && x != root && x.parent.color == RED) {
-            if (parentOf(x) == leftOf(parentOf(parentOf(x)))) {
-                Entry<K,V> y = rightOf(parentOf(parentOf(x)));
-                if (colorOf(y) == RED) {
+        x.color = RED; // 默认设置红色
+        // parentOf(x)是x.parent  leftOf(x)是x的左节点
+        while (x != null && x != root && x.parent.color == RED) { // x不等于null && x不是root节点 && x的父节点是红色
+            if (parentOf(x) == leftOf(parentOf(parentOf(x)))) { //【注意:"x.父节点是左节点"】  x.parent == x.parent.parent.left 说明x.parent是x.parent.parent的左节点
+                Entry<K,V> y = rightOf(parentOf(parentOf(x))); //x.parent.parent.right 叔叔节点
+                if (colorOf(y) == RED) { //叔叔节点是红色
                     setColor(parentOf(x), BLACK);
                     setColor(y, BLACK);
                     setColor(parentOf(parentOf(x)), RED);
                     x = parentOf(parentOf(x));
-                } else {
-                    if (x == rightOf(parentOf(x))) {
-                        x = parentOf(x);
+                } else { //叔叔节点是黑色
+                    if (x == rightOf(parentOf(x))) { //x是右节点
+                        x = parentOf(x); //把x.父节点赋给x
                         rotateLeft(x);
                     }
                     setColor(parentOf(x), BLACK);
                     setColor(parentOf(parentOf(x)), RED);
                     rotateRight(parentOf(parentOf(x)));
                 }
-            } else {
-                Entry<K,V> y = leftOf(parentOf(parentOf(x)));
-                if (colorOf(y) == RED) {
+            } else { // 【注意:"x.parent是右节点"】   x.parent是x.parent.parent的右节点
+                Entry<K,V> y = leftOf(parentOf(parentOf(x))); // 得到x.parent.parent的左节点 叔叔节点
+                if (colorOf(y) == RED) { // x.parent.parent的左节点是红色
                     setColor(parentOf(x), BLACK);
                     setColor(y, BLACK);
                     setColor(parentOf(parentOf(x)), RED);
