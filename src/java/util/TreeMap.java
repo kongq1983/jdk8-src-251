@@ -2217,7 +2217,7 @@ public class TreeMap<K,V>
         return (p == null) ? null: p.right;
     }
 
-    /** From CLR */  // p.right的右节点提升父节点   p变成新父节点的左节点  以前的叶子左节点(p.right.left)变成p.右节点  左旋(左叶子节点p.right.left放到p.right)
+    /** From CLR */  // p.right的右节点提升父节点   p变成新父节点的左节点  旋之前的第2层的左节点变成旋之前第1层节点右节点  左旋(左叶子节点p.right.left放到p.right)
     private void rotateLeft(Entry<K,V> p) {
         if (p != null) {
             Entry<K,V> r = p.right; //r=p.右节点  (p.right将要变成父节点)
@@ -2236,7 +2236,7 @@ public class TreeMap<K,V>
         }
     }
 
-    /** From CLR */  //p.left变成父节点  p变成新父节点的右节点  以前的节点右节点变成p.左节点 右旋(右叶子节点p.left.right变成p.left)
+    /** From CLR */  //p.left变成父节点  p变成新父节点的右节点  旋之前的第2层的右节点变成旋之前第1层节点左节点(右叶子节点p.left.right变成p.left)
     private void rotateRight(Entry<K,V> p) { // 右旋 把p.left 当作父节点
         if (p != null) {
             Entry<K,V> l = p.left; //l=p.左节点(l将要变成父节点)
@@ -2255,44 +2255,44 @@ public class TreeMap<K,V>
 
     /** From CLR */ // 1. 不是root节点情况下，父节点是红节点，才进入条件 2. 判断x.父节点是左节点还是右节点
     private void fixAfterInsertion(Entry<K,V> x) {
-        x.color = RED; // 默认设置红色
+        x.color = RED; // 节点默认设置红色
         // parentOf(x)是x.parent  leftOf(x)是x的左节点
-        while (x != null && x != root && x.parent.color == RED) { // x不等于null && x不是root节点 && x的父节点是红色
+        while (x != null && x != root && x.parent.color == RED) { // x不等于null && x不是root节点 && "x的父节点是红色"
             if (parentOf(x) == leftOf(parentOf(parentOf(x)))) { //【注意:"x.父节点是左节点"】  x.parent == x.parent.parent.left 说明x.parent是x.parent.parent的左节点
                 Entry<K,V> y = rightOf(parentOf(parentOf(x))); //x.parent.parent.right 叔叔节点
                 if (colorOf(y) == RED) { //叔叔节点是红色
-                    setColor(parentOf(x), BLACK);
-                    setColor(y, BLACK);
-                    setColor(parentOf(parentOf(x)), RED);
+                    setColor(parentOf(x), BLACK); //父节点变黑色
+                    setColor(y, BLACK); //叔叔节点变黑色
+                    setColor(parentOf(parentOf(x)), RED); //爷爷节点变红色
                     x = parentOf(parentOf(x));
                 } else { //叔叔节点是黑色
                     if (x == rightOf(parentOf(x))) { //x是右节点
                         x = parentOf(x); //把x.父节点赋给x
-                        rotateLeft(x);
+                        rotateLeft(x); //对新的x左旋
                     }
-                    setColor(parentOf(x), BLACK);
-                    setColor(parentOf(parentOf(x)), RED);
-                    rotateRight(parentOf(parentOf(x)));
+                    setColor(parentOf(x), BLACK); //x的父节点变黑色
+                    setColor(parentOf(parentOf(x)), RED); // x的爷爷节点变红色
+                    rotateRight(parentOf(parentOf(x))); // 对x的爷爷节点右旋
                 }
             } else { // 【注意:"x.parent是右节点"】   x.parent是x.parent.parent的右节点
-                Entry<K,V> y = leftOf(parentOf(parentOf(x))); // 得到x.parent.parent的左节点 叔叔节点
-                if (colorOf(y) == RED) { // x.parent.parent的左节点是红色
+                Entry<K,V> y = leftOf(parentOf(parentOf(x))); //叔叔节点  得到x.parent.parent的左节点
+                if (colorOf(y) == RED) { //叔叔节点是红色   x.parent.parent的左节点是红色
                     setColor(parentOf(x), BLACK);
                     setColor(y, BLACK);
                     setColor(parentOf(parentOf(x)), RED);
                     x = parentOf(parentOf(x));
-                } else {
-                    if (x == leftOf(parentOf(x))) {
-                        x = parentOf(x);
-                        rotateRight(x);
+                } else { // 叔叔节点是黑色
+                    if (x == leftOf(parentOf(x))) { //x是左节点
+                        x = parentOf(x); //把x.parent赋给x
+                        rotateRight(x); //对新的x右旋
                     }
-                    setColor(parentOf(x), BLACK);
-                    setColor(parentOf(parentOf(x)), RED);
-                    rotateLeft(parentOf(parentOf(x)));
+                    setColor(parentOf(x), BLACK); //x的父节点变黑色
+                    setColor(parentOf(parentOf(x)), RED); //x的爷爷节点变红色
+                    rotateLeft(parentOf(parentOf(x))); //对x的爷爷节点左旋
                 }
             }
         }
-        root.color = BLACK;
+        root.color = BLACK;  //根节点设置黑色
     }
 
     /**
