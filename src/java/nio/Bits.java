@@ -187,8 +187,8 @@ class Bits {                            // package-private
     }
 
     static void putShortB(long a, short x) {
-        _put(a    , short1(x));
-        _put(a + 1, short0(x));
+        _put(a    , short1(x)); //(byte)(x >> 8)
+        _put(a + 1, short0(x)); //(byte)(x     )
     }
 
     static void putShort(ByteBuffer bb, int bi, short x, boolean bigEndian) {
@@ -271,10 +271,10 @@ class Bits {                            // package-private
     }
 
     static void putIntB(ByteBuffer bb, int bi, int x) {
-        bb._put(bi    , int3(x));
+        bb._put(bi    , int3(x)); //最高位  放到0的位置  最左边
         bb._put(bi + 1, int2(x));
         bb._put(bi + 2, int1(x));
-        bb._put(bi + 3, int0(x));
+        bb._put(bi + 3, int0(x)); // 最低位  放到第3个位置
     }
 
     static void putIntB(long a, int x) {

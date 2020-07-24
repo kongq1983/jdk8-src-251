@@ -274,7 +274,7 @@ public abstract class Selector implements Closeable {
      */
     public abstract Set<SelectionKey> selectedKeys();
 
-    /**
+    /** 代表获取已经就绪的selectionKey且该方法不会阻塞
      * Selects a set of keys whose corresponding channels are ready for I/O
      * operations.
      *
@@ -296,7 +296,7 @@ public abstract class Selector implements Closeable {
      */
     public abstract int selectNow() throws IOException;
 
-    /**
+    /** 阻塞一段时间(毫秒)
      * Selects a set of keys whose corresponding channels are ready for I/O
      * operations.
      *
@@ -329,7 +329,7 @@ public abstract class Selector implements Closeable {
     public abstract int select(long timeout)
         throws IOException;
 
-    /**
+    /** 一直阻塞(阻塞到至少有一个通道在你注册的事件上就绪)
      * Selects a set of keys whose corresponding channels are ready for I/O
      * operations.
      *
@@ -349,7 +349,7 @@ public abstract class Selector implements Closeable {
      */
     public abstract int select() throws IOException;
 
-    /**
+    /** 能唤醒select 和 select(timeout)
      * Causes the first selection operation that has not yet returned to return
      * immediately.
      *

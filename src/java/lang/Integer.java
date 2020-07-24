@@ -50,13 +50,13 @@ import java.lang.annotation.Native;
  * @since JDK1.0
  */
 public final class Integer extends Number implements Comparable<Integer> {
-    /**
+    /** 1000 0000 0000 0000 0000 0000 0000 0000
      * A constant holding the minimum value an {@code int} can
      * have, -2<sup>31</sup>.
      */
     @Native public static final int   MIN_VALUE = 0x80000000;
 
-    /**
+    /** 0111 1111 1111 1111 1111 1111 1111 1111
      * A constant holding the maximum value an {@code int} can
      * have, 2<sup>31</sup>-1.
      */

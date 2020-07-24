@@ -594,7 +594,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     static final int MOVED     = -1; // hash for forwarding nodes
     static final int TREEBIN   = -2; // hash for roots of trees
     static final int RESERVED  = -3; // hash for transient reservations
-    static final int HASH_BITS = 0x7fffffff; // usable bits of normal node hash
+    static final int HASH_BITS = 0x7fffffff; // usable bits of normal node hash  0111 1111 1111 1111 1111 1111 1111 1111
 
     /** Number of CPUS, to place bounds on some sizings */
     static final int NCPU = Runtime.getRuntime().availableProcessors();
@@ -682,7 +682,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * never be used in index calculations because of table bounds.
      */
     static final int spread(int h) {
-        return (h ^ (h >>> 16)) & HASH_BITS;
+        return (h ^ (h >>> 16)) & HASH_BITS;   // HASH_BITS（0x7fffffff） = 0111 1111 1111 1111 1111 1111 1111 1111 0x7fffffff保证了是正数
     }
 
     /**
@@ -1008,7 +1008,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /** Implementation for put and putIfAbsent */
     final V putVal(K key, V value, boolean onlyIfAbsent) {
-        if (key == null || value == null) throw new NullPointerException();
+        if (key == null || value == null) throw new NullPointerException(); //key 或者 value不能为空
         int hash = spread(key.hashCode());
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
@@ -2228,11 +2228,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                 try {
                     if ((tab = table) == null || tab.length == 0) {
-                        int n = (sc > 0) ? sc : DEFAULT_CAPACITY;
+                        int n = (sc > 0) ? sc : DEFAULT_CAPACITY; //默认是DEFAULT_CAPACITY=16
                         @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
                         table = tab = nt;
-                        sc = n - (n >>> 2);
+                        sc = n - (n >>> 2); // 默认n=DEFAULT_CAPACITY=16 16>>2=4   n=16-4=12
                     }
                 } finally {
                     sizeCtl = sc;
