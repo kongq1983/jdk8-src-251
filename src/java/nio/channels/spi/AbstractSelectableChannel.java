@@ -195,7 +195,7 @@ public abstract class AbstractSelectableChannel
         synchronized (regLock) {
             if (!isOpen())
                 throw new ClosedChannelException();
-            if ((ops & ~validOps()) != 0)
+            if ((ops & ~validOps()) != 0)  // 这里会校验
                 throw new IllegalArgumentException();
             if (blocking)
                 throw new IllegalBlockingModeException();

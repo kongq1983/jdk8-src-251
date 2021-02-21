@@ -1013,12 +1013,12 @@ public interface Map<K,V> {
             BiFunction<? super K, ? super V, ? extends V> remappingFunction) {
         Objects.requireNonNull(remappingFunction);
         V oldValue;
-        if ((oldValue = get(key)) != null) {
+        if ((oldValue = get(key)) != null) { // 存在key && oldValue!=null
             V newValue = remappingFunction.apply(key, oldValue);
-            if (newValue != null) {
+            if (newValue != null) { // 新值!=null，则替换新值
                 put(key, newValue);
                 return newValue;
-            } else {
+            } else { // 新值==null ，则该key从map中删除
                 remove(key);
                 return null;
             }
