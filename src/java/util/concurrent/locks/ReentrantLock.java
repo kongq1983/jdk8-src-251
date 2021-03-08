@@ -224,28 +224,28 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             acquire(1);
         }
 
-        /**
+        /** 无锁或者当前线程拿着锁，返回true   非当前线程拿着锁，返回false
          * Fair version of tryAcquire.  Don't grant access unless
          * recursive call or no waiters or is first.
          */
         protected final boolean tryAcquire(int acquires) {
             final Thread current = Thread.currentThread();
             int c = getState();
-            if (c == 0) {
-                if (!hasQueuedPredecessors() &&
+            if (c == 0) { // 目前无锁状态
+                if (!hasQueuedPredecessors() && //  公平锁，要先排队的，非公平没有hasQueuedPredecessors这个判断
                     compareAndSetState(0, acquires)) {
                     setExclusiveOwnerThread(current);
                     return true;
                 }
             }
-            else if (current == getExclusiveOwnerThread()) {
+            else if (current == getExclusiveOwnerThread()) { // 可重入锁 当前线程拿着锁
                 int nextc = c + acquires;
                 if (nextc < 0)
                     throw new Error("Maximum lock count exceeded");
                 setState(nextc);
                 return true;
             }
-            return false;
+            return false; // 其他线程拿着锁，返回false
         }
     }
 

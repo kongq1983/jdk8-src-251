@@ -581,11 +581,11 @@ public abstract class AbstractQueuedSynchronizer
      * @return node's predecessor
      */
     private Node enq(final Node node) {
-        for (;;) {
+        for (;;) { // 如果是第1次(tail=null)，这里会走2执行2次，第一次 初始化Node，并设置head和tail，第2次执行node.prev= tail  tail.next=node
             Node t = tail;
             if (t == null) { // Must initialize
-                if (compareAndSetHead(new Node()))
-                    tail = head;
+                if (compareAndSetHead(new Node())) // 创建1个new Node当作tail
+                    tail = head; // 这个时候 tail=head
             } else {
                 node.prev = t;
                 if (compareAndSetTail(t, node)) {
@@ -605,7 +605,7 @@ public abstract class AbstractQueuedSynchronizer
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
-        Node pred = tail;
+        Node pred = tail; // 第一次没获取到锁，tial是null
         if (pred != null) {
             node.prev = pred;
             if (compareAndSetTail(pred, node)) {
@@ -613,7 +613,7 @@ public abstract class AbstractQueuedSynchronizer
                 return node;
             }
         }
-        enq(node);
+        enq(node); // pred=null 的时候走这里
         return node;
     }
 
@@ -630,7 +630,7 @@ public abstract class AbstractQueuedSynchronizer
         node.prev = null;
     }
 
-    /**
+    /** 通知后继结点
      * Wakes up node's successor, if one exists.
      *
      * @param node the node
@@ -652,7 +652,7 @@ public abstract class AbstractQueuedSynchronizer
          * non-cancelled successor.
          */
         Node s = node.next;
-        if (s == null || s.waitStatus > 0) {
+        if (s == null || s.waitStatus > 0) { // 如果没找到后继结点，则从tail往前找，最前面的1个(waitStatus <= 0)
             s = null;
             for (Node t = tail; t != null && t != node; t = t.prev)
                 if (t.waitStatus <= 0)
@@ -793,9 +793,9 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if thread should block
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-        int ws = pred.waitStatus;
-        if (ws == Node.SIGNAL)
-            /*
+        int ws = pred.waitStatus; // 一开始ws=0
+        if (ws == Node.SIGNAL) // SIGNAL= -1
+            /* 第2次 ws == Node.SIGNAL，会进入这里
              * This node has already set status asking a release
              * to signal it, so it can safely park.
              */
@@ -810,7 +810,7 @@ public abstract class AbstractQueuedSynchronizer
             } while (pred.waitStatus > 0);
             pred.next = node;
         } else {
-            /*
+            /* 一开始 ws=0，会先进入这里，把ws=Node.SIGNAL=-1
              * waitStatus must be 0 or PROPAGATE.  Indicate that we
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.
@@ -859,15 +859,15 @@ public abstract class AbstractQueuedSynchronizer
         try {
             boolean interrupted = false;
             for (;;) {
-                final Node p = node.predecessor();
-                if (p == head && tryAcquire(arg)) {
+                final Node p = node.predecessor(); // p= node.prev
+                if (p == head && tryAcquire(arg)) { // 上一个节点是head节点
                     setHead(node);
                     p.next = null; // help GC
                     failed = false;
                     return interrupted;
-                }
+                } // 一般第1次 shouldParkAfterFailedAcquire返回false，这个时候会把waitStatus=0变waitStatus=SIGNAL(-1)
                 if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt())
+                    parkAndCheckInterrupt()) // LockSupport.park(this)
                     interrupted = true;
             }
         } finally {
