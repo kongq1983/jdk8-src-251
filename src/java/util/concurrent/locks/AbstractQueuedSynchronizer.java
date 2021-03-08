@@ -607,7 +607,7 @@ public abstract class AbstractQueuedSynchronizer
         // Try the fast path of enq; backup to full enq on failure
         Node pred = tail; // 第一次没获取到锁，tial是null
         if (pred != null) {
-            node.prev = pred;
+            node.prev = pred; // 因为第1次enq head=tail，第2次循环的时候，设置head.next=mode  mode.prev=head
             if (compareAndSetTail(pred, node)) {
                 pred.next = node;
                 return node;
@@ -641,7 +641,7 @@ public abstract class AbstractQueuedSynchronizer
          * to clear in anticipation of signalling.  It is OK if this
          * fails or if status is changed by waiting thread.
          */
-        int ws = node.waitStatus;
+        int ws = node.waitStatus; // 如果前面入队列的话 是 Node.SIGNAL
         if (ws < 0)
             compareAndSetWaitStatus(node, ws, 0);
 
@@ -793,7 +793,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if thread should block
      */
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
-        int ws = pred.waitStatus; // 一开始ws=0
+        int ws = pred.waitStatus; // 一开始ws=0 初始waitStatus=0
         if (ws == Node.SIGNAL) // SIGNAL= -1
             /* 第2次 ws == Node.SIGNAL，会进入这里
              * This node has already set status asking a release

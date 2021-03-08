@@ -150,9 +150,9 @@ public class ArrayList<E> extends AbstractList<E>
      */
     public ArrayList(int initialCapacity) {
         if (initialCapacity > 0) {
-            this.elementData = new Object[initialCapacity];
+            this.elementData = new Object[initialCapacity];  // 用户指定的initialCapacity
         } else if (initialCapacity == 0) {
-            this.elementData = EMPTY_ELEMENTDATA;
+            this.elementData = EMPTY_ELEMENTDATA;  //空数组
         } else {
             throw new IllegalArgumentException("Illegal Capacity: "+
                                                initialCapacity);

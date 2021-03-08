@@ -258,16 +258,16 @@ public class ReentrantReadWriteLock
          * The lower one representing the exclusive (writer) lock hold count,
          * and the upper the shared (reader) hold count.
          */
-        // 左边16位是读锁   右边16位是写锁
+        // 左边16位是读锁(最多65535)   右边16位是写锁(最多65535)
         static final int SHARED_SHIFT   = 16; // 1 0000
         static final int SHARED_UNIT    = (1 << SHARED_SHIFT); // 65536  // 1 0000 0000 0000 0000
-        static final int MAX_COUNT      = (1 << SHARED_SHIFT) - 1; // 最多只能持有65535把锁  // 16个1   (1111 1111 1111 1111)
+        static final int MAX_COUNT      = (1 << SHARED_SHIFT) - 1; // 读锁最多只能持有65535把锁  写锁最多只能持有65535把锁// 16个1   (1111 1111 1111 1111)
         static final int EXCLUSIVE_MASK = (1 << SHARED_SHIFT) - 1; // 65535  // 16个1   (1111 1111 1111 1111)
 
         /** Returns the number of shared holds represented in count  */
         static int sharedCount(int c)    { return c >>> SHARED_SHIFT; }
-        /** Returns the number of exclusive holds represented in count  和1111 1111 1111 1111 取并集 */
-        static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; }
+        /** Returns the number of exclusive holds represented in count  和1111 1111 1111 1111 取并集  其实就是判断是否有写锁 */
+        static int exclusiveCount(int c) { return c & EXCLUSIVE_MASK; } // 读锁在左边的16位，而EXCLUSIVE_MASK=65535是左边的16位
 
         /**
          * A counter for per-thread read hold counts.
@@ -395,11 +395,11 @@ public class ReentrantReadWriteLock
             if (c != 0) {
                 // (Note: if c != 0 and w == 0 then shared count != 0)
                 if (w == 0 || current != getExclusiveOwnerThread())
-                    return false;
-                if (w + exclusiveCount(acquires) > MAX_COUNT)
+                    return false; // 已有读锁持有或者有写锁并且不是当前线程持有，则返回false
+                if (w + exclusiveCount(acquires) > MAX_COUNT) // 写锁超过65535
                     throw new Error("Maximum lock count exceeded");
                 // Reentrant acquire
-                setState(c + acquires);
+                setState(c + acquires); // 设置新的state
                 return true;
             }
             if (writerShouldBlock() ||
