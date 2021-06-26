@@ -203,7 +203,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
          * acquire on failure.
          */
         final void lock() {
-            if (compareAndSetState(0, 1))
+            if (compareAndSetState(0, 1)) // 新来的线程，可直接竞争
                 setExclusiveOwnerThread(Thread.currentThread());
             else
                 acquire(1);

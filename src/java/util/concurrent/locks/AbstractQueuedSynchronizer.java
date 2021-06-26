@@ -586,7 +586,7 @@ public abstract class AbstractQueuedSynchronizer
             if (t == null) { // Must initialize
                 if (compareAndSetHead(new Node())) // 创建1个new Node当作tail
                     tail = head; // 这个时候 tail=head
-            } else {
+            } else { // 其实添加到tail节点，并返回上一个tail节点(倒数第2个)
                 node.prev = t;
                 if (compareAndSetTail(t, node)) {
                     t.next = node;
@@ -605,7 +605,7 @@ public abstract class AbstractQueuedSynchronizer
     private Node addWaiter(Node mode) {
         Node node = new Node(Thread.currentThread(), mode);
         // Try the fast path of enq; backup to full enq on failure
-        Node pred = tail; // 第一次没获取到锁，tial是null
+        Node pred = tail; // 第一次没获取到锁，tail是null
         if (pred != null) {
             node.prev = pred; // 因为第1次enq head=tail，第2次循环的时候，设置head.next=mode  mode.prev=head
             if (compareAndSetTail(pred, node)) {
@@ -630,7 +630,7 @@ public abstract class AbstractQueuedSynchronizer
         node.prev = null;
     }
 
-    /** 通知后继结点
+    /** 通知后继结点  node是当前节点
      * Wakes up node's successor, if one exists.
      *
      * @param node the node
@@ -652,14 +652,14 @@ public abstract class AbstractQueuedSynchronizer
          * non-cancelled successor.
          */
         Node s = node.next;
-        if (s == null || s.waitStatus > 0) { // 如果没找到后继结点，则从tail往前找，最前面的1个(waitStatus <= 0)
+        if (s == null || s.waitStatus > 0) { // 如果没找到后继结点，或者后继节点已经取消了  则从tail往前找，最前面的1个(waitStatus <= 0)
             s = null;
-            for (Node t = tail; t != null && t != node; t = t.prev)
+            for (Node t = tail; t != null && t != node; t = t.prev) // 从tail往前找，最前面的1个 (waitStatus <= 0)
                 if (t.waitStatus <= 0)
                     s = t;
         }
         if (s != null)
-            LockSupport.unpark(s.thread);
+            LockSupport.unpark(s.thread);  // 唤醒该节点的线程
     }
 
     /**
@@ -759,11 +759,11 @@ public abstract class AbstractQueuedSynchronizer
         // Can use unconditional write instead of CAS here.
         // After this atomic step, other Nodes can skip past us.
         // Before, we are free of interference from other threads.
-        node.waitStatus = Node.CANCELLED;
+        node.waitStatus = Node.CANCELLED; // 先打标记  后删除
 
         // If we are the tail, remove ourselves.
-        if (node == tail && compareAndSetTail(node, pred)) {
-            compareAndSetNext(pred, predNext, null);
+        if (node == tail && compareAndSetTail(node, pred)) {  //node是tail节点   删除tail，把pred设置tail节点
+            compareAndSetNext(pred, predNext, null); // 把prev的next设置为null
         } else {
             // If successor needs signal, try to set pred's next-link
             // so it will get one. Otherwise wake it up to propagate.
@@ -815,7 +815,7 @@ public abstract class AbstractQueuedSynchronizer
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.
              */
-            compareAndSetWaitStatus(pred, ws, Node.SIGNAL);
+            compareAndSetWaitStatus(pred, ws, Node.SIGNAL); // 把0 改成 Node.SIGNAL(-1)
         }
         return false;
     }
@@ -833,7 +833,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return {@code true} if interrupted
      */
     private final boolean parkAndCheckInterrupt() {
-        LockSupport.park(this);
+        LockSupport.park(this); // 阻塞
         return Thread.interrupted();
     }
 
@@ -860,14 +860,14 @@ public abstract class AbstractQueuedSynchronizer
             boolean interrupted = false;
             for (;;) {
                 final Node p = node.predecessor(); // p= node.prev
-                if (p == head && tryAcquire(arg)) { // 上一个节点是head节点
-                    setHead(node);
+                if (p == head && tryAcquire(arg)) { // 上一个节点是head节点 阻塞之前再尝试获取一次锁
+                    setHead(node); // 获取锁成功，节点出队，并且把head往后挪一个节点，新的head就是当前node
                     p.next = null; // help GC
                     failed = false;
                     return interrupted;
-                } // 一般第1次 shouldParkAfterFailedAcquire返回false，这个时候会把waitStatus=0变waitStatus=SIGNAL(-1)
-                if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt()) // LockSupport.park(this)
+                } // 一般第1次 shouldParkAfterFailedAcquire返回false，这个时候会把waitStatus=0变waitStatus=SIGNAL(-1)  返回false
+                if (shouldParkAfterFailedAcquire(p, node) && // 第2次  会返回true  然后这里进入休眠
+                    parkAndCheckInterrupt()) // LockSupport.park(this) 不能获取到，阻塞等待被唤醒
                     interrupted = true;
             }
         } finally {
@@ -876,7 +876,7 @@ public abstract class AbstractQueuedSynchronizer
         }
     }
 
-    /**
+    /** 只有前置节点是head，并且获取到锁，才不会报错 , 其余情况都报错InterruptedException
      * Acquires in exclusive interruptible mode.
      * @param arg the acquire argument
      */
@@ -927,11 +927,11 @@ public abstract class AbstractQueuedSynchronizer
                     return true;
                 }
                 nanosTimeout = deadline - System.nanoTime();
-                if (nanosTimeout <= 0L)
+                if (nanosTimeout <= 0L)  // 超时
                     return false;
                 if (shouldParkAfterFailedAcquire(p, node) &&
                     nanosTimeout > spinForTimeoutThreshold)
-                    LockSupport.parkNanos(this, nanosTimeout);
+                    LockSupport.parkNanos(this, nanosTimeout); // 睡眠时间
                 if (Thread.interrupted())
                     throw new InterruptedException();
             }

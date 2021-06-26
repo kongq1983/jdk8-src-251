@@ -402,10 +402,10 @@ public class ReentrantReadWriteLock
                 setState(c + acquires); // 设置新的state
                 return true;
             }
-            if (writerShouldBlock() ||
+            if (writerShouldBlock() || // 左边右边都是0  会直接进入这里
                 !compareAndSetState(c, c + acquires))
                 return false;
-            setExclusiveOwnerThread(current);
+            setExclusiveOwnerThread(current); // 写锁的时候  当前线程持有锁
             return true;
         }
 
