@@ -1408,9 +1408,9 @@ public abstract class AbstractQueuedLongSynchronizer
      */
     final boolean isOnSyncQueue(Node node) {
         if (node.waitStatus == Node.CONDITION || node.prev == null)
-            return false;
+            return false; // 如果状态是condition,证明一定不再同步队列里，condition状态只存在于等待队列，在同步队列里，node.prev是一定不为空的,因为有个head的节点
         if (node.next != null) // If has successor, it must be on queue
-            return true;
+            return true; // 在等待队列里，node.next 是等于空的，不等于空就是在同步队列当中
         /*
          * node.prev can be non-null, but not yet on queue because
          * the CAS to place it on queue can fail. So we have to
@@ -1418,11 +1418,11 @@ public abstract class AbstractQueuedLongSynchronizer
          * will always be near the tail in calls to this method, and
          * unless the CAS failed (which is unlikely), it will be
          * there, so we hardly ever traverse much.
-         */
+         */ // 遍历正个同步队列，判断node是否在同步队列当中
         return findNodeFromTail(node);
     }
 
-    /**
+    /** clh同步队列  从tail往前找
      * Returns true if node is on sync queue by searching backwards from tail.
      * Called only when needed by isOnSyncQueue.
      * @return true if present
@@ -1497,8 +1497,8 @@ public abstract class AbstractQueuedLongSynchronizer
     final long fullyRelease(Node node) {
         boolean failed = true;
         try {
-            long savedState = getState();
-            if (release(savedState)) {
+            long savedState = getState(); // 获取状态state 重入锁是>1
+            if (release(savedState)) { // 一次性释放  其实就是node从clh队列移除
                 failed = false;
                 return savedState;
             } else {
@@ -1628,11 +1628,11 @@ public abstract class AbstractQueuedLongSynchronizer
         private Node addConditionWaiter() {
             Node t = lastWaiter;
             // If lastWaiter is cancelled, clean out.
-            if (t != null && t.waitStatus != Node.CONDITION) {
+            if (t != null && t.waitStatus != Node.CONDITION) { // 先删除取消的Node
                 unlinkCancelledWaiters();
                 t = lastWaiter;
-            }
-            Node node = new Node(Thread.currentThread(), Node.CONDITION);
+            } // 放到lastWaiter位置，如果是第1个则firstWaiter=lastWaiter
+            Node node = new Node(Thread.currentThread(), Node.CONDITION);  // 新增1个新的Node(CONDITION)
             if (t == null)
                 firstWaiter = node;
             else
@@ -1812,8 +1812,8 @@ public abstract class AbstractQueuedLongSynchronizer
         public final void await() throws InterruptedException {
             if (Thread.interrupted())
                 throw new InterruptedException();
-            Node node = addConditionWaiter();
-            long savedState = fullyRelease(node);
+            Node node = addConditionWaiter(); // 1个新的Node(CONDITION)
+            long savedState = fullyRelease(node); // 如果是重入锁，则一次性释放
             int interruptMode = 0;
             while (!isOnSyncQueue(node)) {
                 LockSupport.park(this);
