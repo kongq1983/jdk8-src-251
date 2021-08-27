@@ -2314,19 +2314,19 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return table;
     }
 
-    /**
+    /** 扩容  多线程并发扩容 允许多个线程来协助扩容
      * Tries to presize table to accommodate the given number of elements.
-     *
+     * 创建1个新的数组 然后把老的数据迁移过来
      * @param size number of elements (doesn't need to be perfectly accurate)
      */
     private final void tryPresize(int size) {
         int c = (size >= (MAXIMUM_CAPACITY >>> 1)) ? MAXIMUM_CAPACITY :
-            tableSizeFor(size + (size >>> 1) + 1);
+            tableSizeFor(size + (size >>> 1) + 1); //没有达到最大值  扩容一倍  然后是2的n次方
         int sc;
         while ((sc = sizeCtl) >= 0) {
             Node<K,V>[] tab = table; int n;
-            if (tab == null || (n = tab.length) == 0) {
-                n = (sc > c) ? sc : c;
+            if (tab == null || (n = tab.length) == 0) { //初始化
+                n = (sc > c) ? sc : c; //初始容量| 扩容的目标容量  谁大选谁
                 if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
                     try {
                         if (table == tab) {
@@ -2340,10 +2340,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     }
                 }
             }
-            else if (c <= sc || n >= MAXIMUM_CAPACITY)
+            else if (c <= sc || n >= MAXIMUM_CAPACITY) // 已经最大容量了，不能扩容了 ，直接返回
                 break;
             else if (tab == table) {
-                int rs = resizeStamp(n);
+                int rs = resizeStamp(n); // 唯一性  高位16表示当前的扩容标记-保证唯一性   低16位表示扩容的线程数量
                 if (sc < 0) {
                     Node<K,V>[] nt;
                     if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
@@ -2611,10 +2611,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     private final void treeifyBin(Node<K,V>[] tab, int index) {
         Node<K,V> b; int n, sc;
         if (tab != null) {
-            if ((n = tab.length) < MIN_TREEIFY_CAPACITY)
-                tryPresize(n << 1);
+            if ((n = tab.length) < MIN_TREEIFY_CAPACITY) // table长度小于64
+                tryPresize(n << 1); //扩容
             else if ((b = tabAt(tab, index)) != null && b.hash >= 0) {
-                synchronized (b) {
+                synchronized (b) { //转为红黑树
                     if (tabAt(tab, index) == b) {
                         TreeNode<K,V> hd = null, tl = null;
                         for (Node<K,V> e = b; e != null; e = e.next) {
