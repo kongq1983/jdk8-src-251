@@ -2350,17 +2350,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         sc == rs + MAX_RESIZERS || (nt = nextTable) == null ||
                         transferIndex <= 0)
                         break;
-                    if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1))
+                    if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) // 表示没有结束，每增加一个扩容线程，则在低位+1
                         transfer(tab, nt);
                 }
                 else if (U.compareAndSwapInt(this, SIZECTL, sc,
-                                             (rs << RESIZE_STAMP_SHIFT) + 2))
+                                             (rs << RESIZE_STAMP_SHIFT) + 2)) // 第一次扩容 走这段逻辑
                     transfer(tab, null);
             }
         }
     }
 
-    /**
+    /** 多个线程对同一个容器做数据迁移
      * Moves and/or copies the nodes in each bin to new table. See
      * above for explanation.
      */
