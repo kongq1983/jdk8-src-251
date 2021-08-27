@@ -152,9 +152,9 @@ public class ReentrantLock implements Lock, java.io.Serializable {
             boolean free = false;
             if (c == 0) {
                 free = true;
-                setExclusiveOwnerThread(null);
+                setExclusiveOwnerThread(null); // 如果释放后=0  先清空当前持有线程
             }
-            setState(c);
+            setState(c); // 设置state
             return free;
         }
 
@@ -285,7 +285,7 @@ public class ReentrantLock implements Lock, java.io.Serializable {
         sync.lock();
     }
 
-    /**
+    /** ArrayBlockingQueue的put有使用这个方法
      * Acquires the lock unless the current thread is
      * {@linkplain Thread#interrupt interrupted}.
      *

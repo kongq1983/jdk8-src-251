@@ -788,10 +788,10 @@ public abstract class AbstractQueuedSynchronizer
      * Returns true if thread should block. This is the main signal
      * control in all acquire loops.  Requires that pred == node.prev.
      *
-     * @param pred node's predecessor holding status
+     * @param pred node's predecessor holding status  第一次修改的是head 第一次pred == head
      * @param node the node
      * @return {@code true} if thread should block
-     */
+     */ // pred 第一次是head   node是第一个阻塞线程的node
     private static boolean shouldParkAfterFailedAcquire(Node pred, Node node) {
         int ws = pred.waitStatus; // 一开始ws=0 初始waitStatus=0
         if (ws == Node.SIGNAL) // SIGNAL= -1
@@ -810,7 +810,7 @@ public abstract class AbstractQueuedSynchronizer
             } while (pred.waitStatus > 0);
             pred.next = node;
         } else {
-            /* 一开始 ws=0，会先进入这里，把ws=Node.SIGNAL=-1
+            /* 一开始 ws=0，会先进入这里，把ws=Node.SIGNAL=-1  pred第一次是head
              * waitStatus must be 0 or PROPAGATE.  Indicate that we
              * need a signal, but don't park yet.  Caller will need to
              * retry to make sure it cannot acquire before parking.

@@ -685,7 +685,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         return (h ^ (h >>> 16)) & HASH_BITS;   // HASH_BITS（0x7fffffff） = 0111 1111 1111 1111 1111 1111 1111 1111 0x7fffffff保证了是正数
     }
 
-    /**
+    /** 最近的2的几次方
      * Returns a power of two table size for the given desired capacity.
      * See Hackers Delight, sec 3.2
      */
@@ -1009,14 +1009,14 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /** Implementation for put and putIfAbsent */
     final V putVal(K key, V value, boolean onlyIfAbsent) {
         if (key == null || value == null) throw new NullPointerException(); //key 或者 value不能为空
-        int hash = spread(key.hashCode());
+        int hash = spread(key.hashCode()); // HASH_BITS保证了是正数
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
             Node<K,V> f; int n, i, fh;
-            if (tab == null || (n = tab.length) == 0)
-                tab = initTable();
-            else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) {
-                if (casTabAt(tab, i, null,
+            if (tab == null || (n = tab.length) == 0) // 只要tab没有初始化 就不断循环直到初始结束
+                tab = initTable(); // 初始化完成，进入下一次循环
+            else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) { // 如果当前的node位置为空，直接存储到该位置
+                if (casTabAt(tab, i, null, // 通过cas来保证原子性
                              new Node<K,V>(hash, key, value, null)))
                     break;                   // no lock when adding to empty bin
             }
@@ -1024,29 +1024,29 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 tab = helpTransfer(tab, f);
             else {
                 V oldVal = null;
-                synchronized (f) {
-                    if (tabAt(tab, i) == f) {
+                synchronized (f) { // 锁住当前的node节点避免线程安全问题
+                    if (tabAt(tab, i) == f) { // 重新判断  针对链表来处理
                         if (fh >= 0) {
                             binCount = 1;
                             for (Node<K,V> e = f;; ++binCount) {
-                                K ek;
+                                K ek; // 是否存在相同的key
                                 if (e.hash == hash &&
                                     ((ek = e.key) == key ||
-                                     (ek != null && key.equals(ek)))) {
+                                     (ek != null && key.equals(ek)))) { // 覆盖
                                     oldVal = e.val;
                                     if (!onlyIfAbsent)
                                         e.val = value;
                                     break;
                                 }
                                 Node<K,V> pred = e;
-                                if ((e = e.next) == null) {
+                                if ((e = e.next) == null) { // 说明到了最后1个节点，直接添加到尾部
                                     pred.next = new Node<K,V>(hash, key,
                                                               value, null);
                                     break;
                                 }
                             }
                         }
-                        else if (f instanceof TreeBin) {
+                        else if (f instanceof TreeBin) { // 针对红黑树的处理
                             Node<K,V> p;
                             binCount = 2;
                             if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
@@ -1389,7 +1389,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         // Emulate segment calculation from previous version of this class
         int sshift = 0;
         int ssize = 1;
-        while (ssize < DEFAULT_CONCURRENCY_LEVEL) {
+        while (ssize < DEFAULT_CONCURRENCY_LEVEL) { //ssize >= DEFAULT_CONCURRENCY_LEVEL 的 2的n次方
             ++sshift;
             ssize <<= 1;
         }
@@ -2222,17 +2222,17 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     private final Node<K,V>[] initTable() {
         Node<K,V>[] tab; int sc;
-        while ((tab = table) == null || tab.length == 0) {
+        while ((tab = table) == null || tab.length == 0) { // 只要tab没有初始化 就不断循环直到初始结束
             if ((sc = sizeCtl) < 0)
                 Thread.yield(); // lost initialization race; just spin
-            else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) {
-                try {
+            else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) { // 通过cas自旋(通过cas来占用一个锁的标记)
+                try { // 当前线程抢到了锁
                     if ((tab = table) == null || tab.length == 0) {
                         int n = (sc > 0) ? sc : DEFAULT_CAPACITY; //默认是DEFAULT_CAPACITY=16
                         @SuppressWarnings("unchecked")
-                        Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n];
+                        Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n]; // 初始化 默认DEFAULT_CAPACITY:16
                         table = tab = nt;
-                        sc = n - (n >>> 2); // 默认n=DEFAULT_CAPACITY=16 16>>2=4   n=16-4=12
+                        sc = n - (n >>> 2); // 默认n=DEFAULT_CAPACITY=16 16>>2=4   n=16-4=12  扩容的阈值
                     }
                 } finally {
                     sizeCtl = sc;

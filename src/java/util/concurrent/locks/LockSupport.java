@@ -168,9 +168,9 @@ public class LockSupport {
      * @param blocker the synchronization object responsible for this
      *        thread parking
      * @since 1.6
-     */
+     */ // 推荐方式，blocker是个辅助对象，用于跟踪许可证的获取，以及定位一些阻塞问题，一般情况park(this)就行
     public static void park(Object blocker) {
-        Thread t = Thread.currentThread();
+        Thread t = Thread.currentThread(); // 都是当前线程
         setBlocker(t, blocker);
         UNSAFE.park(false, 0L);
         setBlocker(t, null);
