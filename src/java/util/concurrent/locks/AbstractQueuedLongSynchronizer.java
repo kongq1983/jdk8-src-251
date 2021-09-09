@@ -1497,7 +1497,8 @@ public abstract class AbstractQueuedLongSynchronizer
     final long fullyRelease(Node node) {
         boolean failed = true;
         try {
-            long savedState = getState(); // 获取状态state 重入锁是>1
+            long savedState = getState(); // state是aqs的状态
+            // 获取状态state 重入锁是>1
             if (release(savedState)) { // 一次性释放  其实就是node从clh队列移除
                 failed = false;
                 return savedState;

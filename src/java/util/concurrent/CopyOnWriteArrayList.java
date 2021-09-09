@@ -52,7 +52,7 @@ import java.util.function.Predicate;
 import java.util.function.UnaryOperator;
 import sun.misc.SharedSecrets;
 
-/**
+/** 新增、修改、删除操作时，会复制1个副本处出来，对这个副本加锁操作，操作成功，设置新的副本，(操作过程中，遍历，还是以前全局变量array)
  * A thread-safe variant of {@link java.util.ArrayList} in which all mutative
  * operations ({@code add}, {@code set}, and so on) are implemented by
  * making a fresh copy of the underlying array.
@@ -410,14 +410,14 @@ public class CopyOnWriteArrayList<E>
             Object[] elements = getArray();
             E oldValue = get(elements, index);
 
-            if (oldValue != element) {
+            if (oldValue != element) { // 值修改过了
                 int len = elements.length;
-                Object[] newElements = Arrays.copyOf(elements, len);
+                Object[] newElements = Arrays.copyOf(elements, len); // 拷贝1个新的数组
                 newElements[index] = element;
-                setArray(newElements);
-            } else {
+                setArray(newElements); // 新的array值
+            } else { // 值未修改
                 // Not quite a no-op; ensures volatile write semantics
-                setArray(elements);
+                setArray(elements); // 值为变
             }
             return oldValue;
         } finally {
