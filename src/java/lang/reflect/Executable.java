@@ -503,10 +503,10 @@ public abstract class Executable extends AccessibleObject
         return (getModifiers() & Modifier.VARARGS) != 0;
     }
 
-    /**
+    /** 编译器通过生成一些在源代码中不存在的synthetic方法和类的方式，实现了对private级别的字段和类的访问，从而绕开了语言限制，这可以算是一种trick。
      * Returns {@code true} if this executable is a synthetic
      * construct; returns {@code false} otherwise.
-     *
+     * 在实际生产和应用中，基本不存在程序员需要考虑synthetic的地方
      * @return true if and only if this executable is a synthetic
      * construct as defined by
      * <cite>The Java&trade; Language Specification</cite>.

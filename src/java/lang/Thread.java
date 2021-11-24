@@ -1217,7 +1217,7 @@ class Thread implements Runnable {
     @Deprecated
     public native int countStackFrames();
 
-    /**
+    /** 其实就是调用wait
      * Waits at most {@code millis} milliseconds for this thread to
      * die. A timeout of {@code 0} means to wait forever.
      *
@@ -1247,9 +1247,9 @@ class Thread implements Runnable {
             throw new IllegalArgumentException("timeout value is negative");
         }
 
-        if (millis == 0) {
-            while (isAlive()) {
-                wait(0);
+        if (millis == 0) { // millis=0
+            while (isAlive()) { // 需要线程启动  否则就是无效
+                wait(0); // //阻塞当前线程，而我们是使用main线程来执行此方法的，因此阻塞的就是main线程  这个是普通方法调用
             }
         } else {
             while (isAlive()) {
