@@ -528,7 +528,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     private static final int DEFAULT_CONCURRENCY_LEVEL = 16;
 
-    /**
+    /** 加载因子
      * The load factor for this table. Overrides of this value in
      * constructors affect only the initial table capacity.  The
      * actual floating point value isn't normally used -- it is
@@ -1020,7 +1020,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                              new Node<K,V>(hash, key, value, null)))
                     break;                   // no lock when adding to empty bin
             }
-            else if ((fh = f.hash) == MOVED)
+            else if ((fh = f.hash) == MOVED) // 正在扩容
                 tab = helpTransfer(tab, f);
             else {
                 V oldVal = null;

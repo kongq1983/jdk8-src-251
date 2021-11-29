@@ -138,9 +138,9 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         lock.lock();
         try {
             q.offer(e);
-            if (q.peek() == e) {
+            if (q.peek() == e) { // 就只有1个  queue[0]
                 leader = null;
-                available.signal();
+                available.signal(); // 只有1个 就通知
             }
             return true;
         } finally {
@@ -185,7 +185,7 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         lock.lock();
         try {
             E first = q.peek();
-            if (first == null || first.getDelay(NANOSECONDS) > 0)
+            if (first == null || first.getDelay(NANOSECONDS) > 0) // >0 : 时间还没到  <0 : 时间到了
                 return null;
             else
                 return q.poll();
@@ -206,9 +206,9 @@ public class DelayQueue<E extends Delayed> extends AbstractQueue<E>
         lock.lockInterruptibly();
         try {
             for (;;) {
-                E first = q.peek();
+                E first = q.peek(); // return (size == 0) ? null : (E) queue[0];
                 if (first == null)
-                    available.await();
+                    available.await(); // 等待 put、offer会signal
                 else {
                     long delay = first.getDelay(NANOSECONDS);
                     if (delay <= 0)

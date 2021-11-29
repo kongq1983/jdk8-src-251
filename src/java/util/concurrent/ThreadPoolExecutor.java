@@ -909,7 +909,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 ! (rs == SHUTDOWN &&
                    firstTask == null &&
                    ! workQueue.isEmpty()))
-                return false;
+                return false; // 如果调用SHUTDOWN 新任务firstTask!=null的 所以这里直接返回false
 
             for (;;) {
                 int wc = workerCountOf(c);
@@ -942,7 +942,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
                     if (rs < SHUTDOWN ||
                         (rs == SHUTDOWN && firstTask == null)) {
-                        if (t.isAlive()) // precheck that t is startable
+                        if (t.isAlive()) // precheck that t is startable // t在下面启动
                             throw new IllegalThreadStateException();
                         workers.add(w);
                         int s = workers.size();
@@ -1061,7 +1061,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             // Are workers subject to culling?  allowCoreThreadTimeOut默认不设置:flase
             boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
 
-            if ((wc > maximumPoolSize || (timed && timedOut))
+            if ((wc > maximumPoolSize || (timed && timedOut)) // 下面workQueue.poll超时 ，然后timedOut=true 重新循环到这里
                 && (wc > 1 || workQueue.isEmpty())) {
                 if (compareAndDecrementWorkerCount(c))
                     return null;
@@ -1164,7 +1164,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             }
             completedAbruptly = false;
         } finally {
-            processWorkerExit(w, completedAbruptly); // 当前线程没有任务执行
+            processWorkerExit(w, completedAbruptly); // 当前线程没有任务执行  删除Worker
         }
     }
 
@@ -1325,7 +1325,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         this.handler = handler;
     }
 
-    /**
+    /** execute和submit区别？
      * Executes the given task sometime in the future.  The task
      * may execute in a new thread or in an existing pooled thread.
      *
@@ -1365,7 +1365,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         int c = ctl.get();
         if (workerCountOf(c) < corePoolSize) { // 启动线程数 小于核心线程  每次execute 都启动新线程
             if (addWorker(command, true)) // 创建新线程 并放到workers
-                return;
+                return;// 如果shutdown了，addWorker返回false
             c = ctl.get();
         }
         if (isRunning(c) && workQueue.offer(command)) { //offerLast 添加到队列最后
@@ -2034,7 +2034,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param e the executor attempting to execute this task
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
-            if (!e.isShutdown()) {
+            if (!e.isShutdown()) { // 虽然会调用reject 但是这里有判断e.isShutdown()
                 r.run();
             }
         }
@@ -2105,7 +2105,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
          * @param e the executor attempting to execute this task
          */
         public void rejectedExecution(Runnable r, ThreadPoolExecutor e) {
-            if (!e.isShutdown()) {
+            if (!e.isShutdown()) { // 虽然会调用reject 但是这里有判断e.isShutdown()
                 e.getQueue().poll(); // pollFirst 删除头
                 e.execute(r);
             }

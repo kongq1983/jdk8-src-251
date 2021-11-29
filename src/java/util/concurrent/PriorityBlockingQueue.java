@@ -171,7 +171,7 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
      */
     private final Condition notEmpty;
 
-    /**
+    /** 用于分配的自旋锁，通过 CAS 获取。
      * Spinlock for allocation, acquired via CAS.
      */
     private transient volatile int allocationSpinLock;
@@ -294,8 +294,8 @@ public class PriorityBlockingQueue<E> extends AbstractQueue<E>
                                      0, 1)) {
             try {
                 int newCap = oldCap + ((oldCap < 64) ?
-                                       (oldCap + 2) : // grow faster if small
-                                       (oldCap >> 1));
+                                       (oldCap + 2) : // grow faster if small   oldCap+oldCap+2
+                                       (oldCap >> 1)); // >64 增加一半 1.5  oldCap+oldCap/2
                 if (newCap - MAX_ARRAY_SIZE > 0) {    // possible overflow
                     int minCap = oldCap + 1;
                     if (minCap < 0 || minCap > MAX_ARRAY_SIZE)

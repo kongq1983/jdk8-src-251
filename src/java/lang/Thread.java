@@ -1217,7 +1217,7 @@ class Thread implements Runnable {
     @Deprecated
     public native int countStackFrames();
 
-    /**
+    /**  注意这里是synchronized  加了synzhroinzed
      * Waits at most {@code millis} milliseconds for this thread to
      * die. A timeout of {@code 0} means to wait forever.
      *
@@ -1238,7 +1238,7 @@ class Thread implements Runnable {
      *          <i>interrupted status</i> of the current thread is
      *          cleared when this exception is thrown.
      */
-    public final synchronized void join(long millis)
+    public final synchronized void join(long millis) // 在这里加锁了  所以这把锁是thread
     throws InterruptedException {
         long base = System.currentTimeMillis();
         long now = 0;
