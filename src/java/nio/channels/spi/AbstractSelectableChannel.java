@@ -56,8 +56,8 @@ public abstract class AbstractSelectableChannel
 
     // Keys that have been created by registering this channel with selectors.
     // They are saved because if this channel is closed the keys must be
-    // deregistered.  Protected by keyLock.
-    //
+    // deregistered.  Protected by keyLock. 通过keyLock保证选择key集合的线程安全访问
+    // 通道自己使用的SelectionKey 比如Read 、Write 、Connection
     private SelectionKey[] keys = null;
     private int keyCount = 0;
 
@@ -100,7 +100,7 @@ public abstract class AbstractSelectableChannel
             for (i = 0; i < keys.length; i++)
                 if (keys[i] == null)
                     break;
-        } else if (keys == null) {
+        } else if (keys == null) { // 第一次
             keys =  new SelectionKey[3];
         } else {
             // Grow key array
@@ -204,13 +204,13 @@ public abstract class AbstractSelectableChannel
                 k.interestOps(ops);
                 k.attach(att);
             }
-            if (k == null) {
+            if (k == null) { // 第一次是null的  走这里的
                 // New registration
                 synchronized (keyLock) {
                     if (!isOpen())
                         throw new ClosedChannelException();
-                    k = ((AbstractSelector)sel).register(this, ops, att);
-                    addKey(k);
+                    k = ((AbstractSelector)sel).register(this, ops, att); // Selector上注册
+                    addKey(k); // 添加到keys  该Channel上的SelectionKey
                 }
             }
             return k;

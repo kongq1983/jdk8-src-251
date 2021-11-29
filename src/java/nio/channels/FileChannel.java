@@ -371,7 +371,7 @@ public abstract class FileChannel
         return read(dsts, 0, dsts.length);
     }
 
-    /**
+    /** 无法保证你写入Channel的数据都被写到了磁盘，直到你调用force()方法  一般写到pagecache
      * Writes a sequence of bytes to this channel from the given buffer.
      *
      * <p> Bytes are written starting at this channel's current file position
