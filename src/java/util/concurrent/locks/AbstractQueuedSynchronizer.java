@@ -596,7 +596,7 @@ public abstract class AbstractQueuedSynchronizer
         }
     }
 
-    /**
+    /** 添加到tail节点
      * Creates and enqueues node for current thread and given mode.
      *
      * @param mode Node.EXCLUSIVE for exclusive, Node.SHARED for shared
@@ -608,7 +608,7 @@ public abstract class AbstractQueuedSynchronizer
         Node pred = tail; // 第一次没获取到锁，tail是null
         if (pred != null) {
             node.prev = pred; // 因为第1次enq head=tail，第2次循环的时候，设置head.next=mode  mode.prev=head
-            if (compareAndSetTail(pred, node)) {
+            if (compareAndSetTail(pred, node)) { // 把以前的tail节点pred设置新的tail节点node
                 pred.next = node;
                 return node;
             }
@@ -661,13 +661,13 @@ public abstract class AbstractQueuedSynchronizer
         if (s != null)  // 要么是后继结点  要么是第1个有效节点
             LockSupport.unpark(s.thread);  // 唤醒该节点的线程
     }
-
-    /**
+    // 唤醒head节点的下一个节点。这一点看上去和独占锁似乎一样，但是它们的一个重要的 差别是——在共享锁中，当头节点发生变化时，是会回到循环中再立即唤醒head节点的下一个节点的
+    /** Node.SHARED 唤醒所有的Node.SHARED，可继续唤醒后续的线程
      * Release action for shared mode -- signals successor and ensures  共享模式的释放动作——表示后继者并确保传播。 （注意：对于独占模
      * propagation. (Note: For exclusive mode, release just amounts  （注意：对于独占模式，如果需要信号，释放就相当于调用头部的 unparkSuccessor。）
      * to calling unparkSuccessor of head if it needs signal.)
-     */
-    private void doReleaseShared() {
+     */ // 2处调用： 在acquireShared方法的末尾     在releaseShared方法中
+    private void doReleaseShared() {// todo share
         /*
          * Ensure that a release propagates, even if there are other  确保release propagates，即使有其他正在进行中的acquires/releases
          * in-progress acquires/releases.  This proceeds in the usual   。 这在通常情况下进行
@@ -678,18 +678,18 @@ public abstract class AbstractQueuedSynchronizer
          * while we are doing this. Also, unlike other uses of     在我们这样做的时候。 此外，与其他用途不同
          * unparkSuccessor, we need to know if CAS to reset status  unparkSuccessor，我们需要知道CAS是否重置状态
          * fails, if so rechecking.   失败，如果是重新检查
-         */
+         */ // 也就是说，在当前节点完成唤醒后继节点的任务之后将要退出时，如果发现被唤醒后继节点已经成为了新的头节点，则会立即触发唤醒head节点的下一个节点的操作，如此周而复始
         for (;;) {
             Node h = head; // 从head开始唤醒，一直唤醒到最后1个，到最后1个的时候， head=tail
-            if (h != null && h != tail) { // 判断队列是否至少有两个node，如果队列从来没有初始化过（head为null），或者head就是tail， 那么中间逻辑直接不走，直接判断head是否变化了
+            if (h != null && h != tail) { // (head!=tail ，则进入 ) 判断队列是否至少有两个node，如果队列从来没有初始化过（head为null），或者head就是tail， 那么中间逻辑直接不走，直接判断head是否变化了
                 int ws = h.waitStatus; // 中间有节点插入
                 if (ws == Node.SIGNAL) { // 线程在条件队列里等待
-                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0))
+                    if (!compareAndSetWaitStatus(h, Node.SIGNAL, 0)) // 这里把head.waitStatus=0
                         continue;            // loop to recheck cases
-                    unparkSuccessor(h);
+                    unparkSuccessor(h); // 唤醒后继节点
                 }
                 else if (ws == 0 &&
-                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))
+                         !compareAndSetWaitStatus(h, 0, Node.PROPAGATE))  // 先判断waitStatus是否0，这里把head.waitStatus=PROPAGATE=-3
                     continue;                // loop on failed CAS
             }
             if (h == head)                   // loop if head changed  没有节点插入，则直接结束
@@ -705,9 +705,9 @@ public abstract class AbstractQueuedSynchronizer
      * @param node the node
      * @param propagate the return value from a tryAcquireShared
      */
-    private void setHeadAndPropagate(Node node, int propagate) {
+    private void setHeadAndPropagate(Node node, int propagate) { // propagate>0 传播
         Node h = head; // Record old head for check below
-        setHead(node);
+        setHead(node); // todo 把node设置head
         /*
          * Try to signal next queued node if:  尝试向下一个排队节点发出信号，如果：
          *   Propagation was indicated by caller,    Propagation由调用者指示，
@@ -727,7 +727,7 @@ public abstract class AbstractQueuedSynchronizer
         if (propagate > 0 || h == null || h.waitStatus < 0 ||
             (h = head) == null || h.waitStatus < 0) {
             Node s = node.next;
-            if (s == null || s.isShared())
+            if (s == null || s.isShared()) // 没有后继节点或后继节点是SHARED
                 doReleaseShared();
         }
     }
@@ -946,24 +946,24 @@ public abstract class AbstractQueuedSynchronizer
      * @param arg the acquire argument
      */
     private void doAcquireShared(int arg) {
-        final Node node = addWaiter(Node.SHARED);
+        final Node node = addWaiter(Node.SHARED); // SHARED  假设第1个节点  head.next = node ;  node.prev=tail ;  head = tail
         boolean failed = true;
         try {
             boolean interrupted = false;
             for (;;) {
-                final Node p = node.predecessor();
-                if (p == head) {
+                final Node p = node.predecessor(); // 前驱
+                if (p == head) { // 前驱节点是head
                     int r = tryAcquireShared(arg); // CountDownLatch(state==0 到时候，r才返回1  其余返回-1)
                     if (r >= 0) {
-                        setHeadAndPropagate(node, r);
-                        p.next = null; // help GC
+                        setHeadAndPropagate(node, r); // 会重新设置head 共享锁会唤醒  r=propagate >0 是传播
+                        p.next = null; // help GC // 删除p节点  上面已经有新的head节点
                         if (interrupted)
                             selfInterrupt();
                         failed = false;
                         return;
                     }
                 }
-                if (shouldParkAfterFailedAcquire(p, node) &&
+                if (shouldParkAfterFailedAcquire(p, node) && // 阻塞
                     parkAndCheckInterrupt())
                     interrupted = true;
             }
@@ -1339,7 +1339,7 @@ public abstract class AbstractQueuedSynchronizer
      */
     public final boolean releaseShared(int arg) {
         if (tryReleaseShared(arg)) {
-            doReleaseShared();
+            doReleaseShared(); // 唤醒共享锁
             return true;
         }
         return false;
