@@ -489,7 +489,7 @@ public final class System {
      *               because of a type mismatch.
      * @exception  NullPointerException if either <code>src</code> or
      *               <code>dest</code> is <code>null</code>.
-     */
+     */ // memmove(dst_addr, src_addr, length << l2es); c1_Runtime1.cpp：1342
     public static native void arraycopy(Object src,  int  srcPos,
                                         Object dest, int destPos,
                                         int length);

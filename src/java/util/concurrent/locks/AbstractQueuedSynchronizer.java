@@ -391,8 +391,8 @@ public abstract class AbstractQueuedSynchronizer
         static final int CONDITION = -2;
         /** 释放共享资源时，需要通知其他节点   共享的
          * waitStatus value to indicate the next acquireShared should
-         * unconditionally propagate
-         */
+         * unconditionally propagate   指示下一个acquireShared的waitStatus值，应该无条件传播
+         */ // 引入PROPAGATE是为了解决JDK-6801020  目前只有doReleaseShared有用
         static final int PROPAGATE = -3; // CANCELLED:1  SIGNAL:-1  CONDITION:-2  PROPAGATE:-3
 
         /**
@@ -942,7 +942,7 @@ public abstract class AbstractQueuedSynchronizer
     }
 
     /**
-     * Acquires in shared uninterruptible mode.
+     * Acquires in shared uninterruptible mode. 在共享不间断模式下获取
      * @param arg the acquire argument
      */
     private void doAcquireShared(int arg) {
@@ -1339,7 +1339,7 @@ public abstract class AbstractQueuedSynchronizer
      */
     public final boolean releaseShared(int arg) {
         if (tryReleaseShared(arg)) {
-            doReleaseShared(); // 唤醒共享锁
+            doReleaseShared(); // 唤醒共享锁  从这里就可以看出，在共享锁模式下，不仅释放锁的方法可以唤醒节点，加锁的方法也会触发唤醒后续节点的操作
             return true;
         }
         return false;

@@ -634,7 +634,7 @@ public class Proxy implements java.io.Serializable {
             String proxyName = proxyPkg + proxyClassNamePrefix + num;
 
             /*
-             * Generate the specified proxy class.
+             * Generate the specified proxy class. todo 动态生成类
              */
             byte[] proxyClassFile = ProxyGenerator.generateProxyClass(
                 proxyName, interfaces, accessFlags);
@@ -713,7 +713,7 @@ public class Proxy implements java.io.Serializable {
             checkProxyAccess(Reflection.getCallerClass(), loader, intfs);
         }
 
-        /*
+        /* todo 动态生成类
          * Look up or generate the designated proxy class.
          */
         Class<?> cl = getProxyClass0(loader, intfs);
