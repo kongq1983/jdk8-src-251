@@ -2425,7 +2425,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             else {
                 synchronized (f) {
                     if (tabAt(tab, i) == f) {
-                        Node<K,V> ln, hn;
+                        Node<K,V> ln, hn; // ln:低位链表  hn:高位链表  高低位链拆分
                         if (fh >= 0) {
                             int runBit = fh & n;
                             Node<K,V> lastRun = f;
@@ -2436,11 +2436,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                                     lastRun = p;
                                 }
                             }
-                            if (runBit == 0) {
+                            if (runBit == 0) { // 不用迁移
                                 ln = lastRun;
                                 hn = null;
                             }
-                            else {
+                            else {  // 要迁移
                                 hn = lastRun;
                                 ln = null;
                             }
