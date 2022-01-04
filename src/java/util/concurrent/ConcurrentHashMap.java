@@ -784,13 +784,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     private transient volatile long baseCount;
 
-    /**
-     * Table initialization and resizing control.  When negative, the
-     * table is being initialized or resized: -1 for initialization,
-     * else -(1 + the number of active resizing threads).  Otherwise,
-     * when table is null, holds the initial table size to use upon
-     * creation, or 0 for default. After initialization, holds the
-     * next element count value upon which to resize the table.
+    /** 记录当前线程数量
+     * Table initialization and resizing control.  When negative, the  默认为0，用来控制table的初始化和扩容操作
+     * table is being initialized or resized: -1 for initialization,   -1 代表table正在初始化
+     * else -(1 + the number of active resizing threads).  Otherwise,  负数（1 + 活动调整线程的数量）
+     * when table is null, holds the initial table size to use upon   如果table未初始化，表示table需要初始化的大小
+     * creation, or 0 for default. After initialization, holds the  
+     * next element count value upon which to resize the table.  初始化后，保存下一个要调整表格大小的元素计数值。
      */
     private transient volatile int sizeCtl;
 
@@ -1059,8 +1059,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     }
                 }
                 if (binCount != 0) {
-                    if (binCount >= TREEIFY_THRESHOLD)
-                        treeifyBin(tab, i);
+                    if (binCount >= TREEIFY_THRESHOLD) // TREEIFY_THRESHOLD=8 列表长度>=8
+                        treeifyBin(tab, i); // 数组长度<64扩容
                     if (oldVal != null)
                         return oldVal;
                     break;
@@ -2319,11 +2319,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * 创建1个新的数组 然后把老的数据迁移过来
      * @param size number of elements (doesn't need to be perfectly accurate)
      */
-    private final void tryPresize(int size) {
+    private final void tryPresize(int size) { // 扩容
         int c = (size >= (MAXIMUM_CAPACITY >>> 1)) ? MAXIMUM_CAPACITY :
             tableSizeFor(size + (size >>> 1) + 1); //没有达到最大值  扩容一倍  然后是2的n次方
         int sc;
-        while ((sc = sizeCtl) >= 0) {
+        while ((sc = sizeCtl) >= 0) { // 说明数组要做初始化
             Node<K,V>[] tab = table; int n;
             if (tab == null || (n = tab.length) == 0) { //初始化
                 n = (sc > c) ? sc : c; //初始容量| 扩容的目标容量  谁大选谁
@@ -2354,8 +2354,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         transfer(tab, nt);
                 }
                 else if (U.compareAndSwapInt(this, SIZECTL, sc,
-                                             (rs << RESIZE_STAMP_SHIFT) + 2)) // 第一次扩容 走这段逻辑
-                    transfer(tab, null);
+                                             (rs << RESIZE_STAMP_SHIFT) + 2)) // 第一次扩容 走这段逻辑 rs左移16位+2  第一次+2
+                    transfer(tab, null); // 上面高位是1  是负数  走sc<0上面逻辑
             }
         }
     }
@@ -2611,9 +2611,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     private final void treeifyBin(Node<K,V>[] tab, int index) {
         Node<K,V> b; int n, sc;
         if (tab != null) {
-            if ((n = tab.length) < MIN_TREEIFY_CAPACITY) // table长度小于64
+            if ((n = tab.length) < MIN_TREEIFY_CAPACITY) // table.length < 64 and >=8
                 tryPresize(n << 1); //扩容
-            else if ((b = tabAt(tab, index)) != null && b.hash >= 0) {
+            else if ((b = tabAt(tab, index)) != null && b.hash >= 0) { // >=64 转为红黑树
                 synchronized (b) { //转为红黑树
                     if (tabAt(tab, index) == b) {
                         TreeNode<K,V> hd = null, tl = null;

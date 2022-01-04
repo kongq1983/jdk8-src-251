@@ -384,7 +384,7 @@ public abstract class ClassLoader {
      * @param  name
      *         The <a href="#name">binary name</a> of the class
      *
-     * @param  resolve
+     * @param  resolve 默认flase(不解析)
      *         If <tt>true</tt> then resolve the class
      *
      * @return  The resulting <tt>Class</tt> object
@@ -402,9 +402,9 @@ public abstract class ClassLoader {
                 long t0 = System.nanoTime();
                 try {
                     if (parent != null) {
-                        c = parent.loadClass(name, false);
+                        c = parent.loadClass(name, false); // 默认flase(不解析)
                     } else {
-                        c = findBootstrapClassOrNull(name);
+                        c = findBootstrapClassOrNull(name); // BootstrapClassLoader 顶级ClassLoader
                     }
                 } catch (ClassNotFoundException e) {
                     // ClassNotFoundException thrown if class not found
