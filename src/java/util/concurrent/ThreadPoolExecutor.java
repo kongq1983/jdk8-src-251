@@ -905,21 +905,21 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int rs = runStateOf(c); // 高3位 获取状态
 
             // Check if queue empty only if necessary.
-<<<<<<< HEAD
-            if (rs >= SHUTDOWN &&
-                ! (rs == SHUTDOWN &&
-                   firstTask == null &&
-                   ! workQueue.isEmpty()))
-                return false; // 如果调用SHUTDOWN 新任务firstTask!=null的 所以这里直接返回false
+//<<<<<<< HEAD
+//            if (rs >= SHUTDOWN &&
+//                ! (rs == SHUTDOWN &&
+//                   firstTask == null &&
+//                   ! workQueue.isEmpty()))
+//                return false; // 如果调用SHUTDOWN 新任务firstTask!=null的 所以这里直接返回false
 
-=======
+//=======
             if (rs >= SHUTDOWN &&  // SHUTDOWN STOP TIDYING TERMINATED
                 ! (rs == SHUTDOWN &&  // 如果rs= STOP TIDYING TERMINATED ，则直接返回false
                    firstTask == null && // 如果 firstTask !=null 则直接返回false
                    ! workQueue.isEmpty())) // workQueue为空 则直接返回false
                 return false;
             // 进入这里条件 只有 RUNNING  或者 ( SHUTDOWN &&  firstTask==null && workQueue不为空 )
->>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
+//>>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
             for (;;) {
                 int wc = workerCountOf(c);  // 获取工作线程数
                 if (wc >= CAPACITY ||
@@ -951,11 +951,11 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
 
                     if (rs < SHUTDOWN || // RUNNING
                         (rs == SHUTDOWN && firstTask == null)) {
-<<<<<<< HEAD
-                        if (t.isAlive()) // precheck that t is startable // t在下面启动
-=======
+//<<<<<<< HEAD
+//                        if (t.isAlive()) // precheck that t is startable // t在下面启动
+//=======
                         if (t.isAlive()) // precheck that t is startable  如果thread已经启动了 则报错
->>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
+//>>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
                             throw new IllegalThreadStateException();
                         workers.add(w); //添加到worker队列
                         int s = workers.size();
@@ -1072,19 +1072,19 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
             int wc = workerCountOf(c);
             /**  todo  工作线程回收 */
             // Are workers subject to culling?  allowCoreThreadTimeOut默认不设置:flase
-<<<<<<< HEAD
-            boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
-
-            if ((wc > maximumPoolSize || (timed && timedOut)) // 下面workQueue.poll超时 ，然后timedOut=true 重新循环到这里
-                && (wc > 1 || workQueue.isEmpty())) {
-                if (compareAndDecrementWorkerCount(c))
-=======
+//<<<<<<< HEAD
+//            boolean timed = allowCoreThreadTimeOut || wc > corePoolSize;
+//
+//            if ((wc > maximumPoolSize || (timed && timedOut)) // 下面workQueue.poll超时 ，然后timedOut=true 重新循环到这里
+//                && (wc > 1 || workQueue.isEmpty())) {
+//                if (compareAndDecrementWorkerCount(c))
+//=======
             boolean timed = allowCoreThreadTimeOut || wc > corePoolSize; // allowCoreThreadTimeOut false默认情况下
             // wc > corePoolSize 说明maximumPoolSize>corePoolSize  timed=true
             if ((wc > maximumPoolSize || (timed && timedOut))  // 第一次timedOut=false ,第二次 timedOut=true 说明已经超时获取任务
                 && (wc > 1 || workQueue.isEmpty())) { // wc > maximumPoolSize 是因为设置过setMaximumPoolSize
                 if (compareAndDecrementWorkerCount(c))  // workerCount-1
->>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
+//>>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
                     return null;
                 continue;
             }

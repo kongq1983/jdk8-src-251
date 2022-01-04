@@ -625,23 +625,23 @@ public class HashMap<K,V> extends AbstractMap<K,V>
     final V putVal(int hash, K key, V value, boolean onlyIfAbsent,
                    boolean evict) {
         Node<K,V>[] tab; Node<K,V> p; int n, i;
-        if ((tab = table) == null || (n = tab.length) == 0)
+        if ((tab = table) == null || (n = tab.length) == 0)  // table 是数组(先)
             n = (tab = resize()).length;
-        if ((p = tab[i = (n - 1) & hash]) == null)
-            tab[i] = newNode(hash, key, value, null);
-        else {
+        if ((p = tab[i = (n - 1) & hash]) == null) // 当前数据中，没有Node
+            tab[i] = newNode(hash, key, value, null); // 初始化某个数组中的Node 及key、value
+        else { // 具体数组中某个位置，已经有Node
             Node<K,V> e; K k;
             if (p.hash == hash &&
                 ((k = p.key) == key || (key != null && key.equals(k))))
-                e = p;
-            else if (p instanceof TreeNode)
+                e = p;  // 已经存在key，则直接替换值
+            else if (p instanceof TreeNode)  // 红黑树
                 e = ((TreeNode<K,V>)p).putTreeVal(this, tab, hash, key, value);
-            else {
+            else { // 目前还是列表
                 for (int binCount = 0; ; ++binCount) {
                     if ((e = p.next) == null) {
-                        p.next = newNode(hash, key, value, null);
-                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st
-                            treeifyBin(tab, hash);
+                        p.next = newNode(hash, key, value, null); // 创建列表中的Node
+                        if (binCount >= TREEIFY_THRESHOLD - 1) // -1 for 1st   >=7
+                            treeifyBin(tab, hash); // tab.length <64 会对列表进行扩容，如果>64则变红黑树
                         break;
                     }
                     if (e.hash == hash &&
@@ -754,12 +754,12 @@ public class HashMap<K,V> extends AbstractMap<K,V>
      */
     final void treeifyBin(Node<K,V>[] tab, int hash) {
         int n, index; Node<K,V> e;
-        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY)
+        if (tab == null || (n = tab.length) < MIN_TREEIFY_CAPACITY) // tab.length < 64，则扩容
             resize();
         else if ((e = tab[index = (n - 1) & hash]) != null) {
             TreeNode<K,V> hd = null, tl = null;
             do {
-                TreeNode<K,V> p = replacementTreeNode(e, null);
+                TreeNode<K,V> p = replacementTreeNode(e, null); // tab中的每个位置
                 if (tl == null)
                     hd = p;
                 else {

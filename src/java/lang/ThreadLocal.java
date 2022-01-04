@@ -179,11 +179,11 @@ public class ThreadLocal<T> {
     private T setInitialValue() {
         T value = initialValue();
         Thread t = Thread.currentThread();
-        ThreadLocalMap map = getMap(t);
+        ThreadLocalMap map = getMap(t); //  return t.threadLocals;
         if (map != null)
             map.set(this, value);
         else
-            createMap(t, value);
+            createMap(t, value); // t.threadLocals = new ThreadLocalMap(this, firstValue);
         return value;
     }
 
@@ -200,7 +200,7 @@ public class ThreadLocal<T> {
         Thread t = Thread.currentThread();
         ThreadLocalMap map = getMap(t);
         if (map != null)
-            map.set(this, value);
+            map.set(this, value); // this = ThreadLocal
         else
             createMap(t, value);
     }

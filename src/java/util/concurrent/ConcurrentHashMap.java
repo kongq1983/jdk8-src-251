@@ -690,7 +690,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * See Hackers Delight, sec 3.2
      */
     private static final int tableSizeFor(int c) {
-        int n = c - 1;
+        int n = c - 1; // 31-1 = 30 前面以20为例
         n |= n >>> 1;
         n |= n >>> 2;
         n |= n >>> 4;
@@ -835,11 +835,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      */
     public ConcurrentHashMap(int initialCapacity) {
         if (initialCapacity < 0)
-            throw new IllegalArgumentException();
+            throw new IllegalArgumentException(); // MAXIMUM_CAPACITY = 1 << 30 = 1073741824
         int cap = ((initialCapacity >= (MAXIMUM_CAPACITY >>> 1)) ?
-                   MAXIMUM_CAPACITY :
-                   tableSizeFor(initialCapacity + (initialCapacity >>> 1) + 1));
-        this.sizeCtl = cap;
+                   MAXIMUM_CAPACITY : // 假设initialCapacity=20(00010100)   00010100 >>1 = 1010(2进制) = 10(10进制)
+                   tableSizeFor(initialCapacity + (initialCapacity >>> 1) + 1)); // 入参31 (20 + 10 + 1)  则cap=32 ，2的几次方
+        this.sizeCtl = cap; // sizeCtl = cap = 32 构造函数方式 sizeCtl=cap
     }
 
     /**
@@ -1012,7 +1012,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         int hash = spread(key.hashCode()); // HASH_BITS保证了是正数
         int binCount = 0;
         for (Node<K,V>[] tab = table;;) {
-            Node<K,V> f; int n, i, fh;
+            Node<K,V> f; int n, i, fh; // f = 具体某个table位置的头节点   n = tab.length  i = tablez中的具体位置  fh = f.hash
             if (tab == null || (n = tab.length) == 0) // 只要tab没有初始化 就不断循环直到初始结束
                 tab = initTable(); // 初始化完成，进入下一次循环
             else if ((f = tabAt(tab, i = (n - 1) & hash)) == null) { // 如果当前的node位置为空，直接存储到该位置
@@ -1022,13 +1022,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             }
             else if ((fh = f.hash) == MOVED) // 正在扩容
                 tab = helpTransfer(tab, f);
-            else {
+            else { // 也就是有头节点的  要么update 要么 add
                 V oldVal = null;
                 synchronized (f) { // 锁住当前的node节点避免线程安全问题
                     if (tabAt(tab, i) == f) { // 重新判断  针对链表来处理
                         if (fh >= 0) {
                             binCount = 1;
-                            for (Node<K,V> e = f;; ++binCount) {
+                            for (Node<K,V> e = f;; ++binCount) { // 第一次进来后  binCount=1
                                 K ek; // 是否存在相同的key
                                 if (e.hash == hash &&
                                     ((ek = e.key) == key ||
@@ -1050,8 +1050,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                             Node<K,V> p;
                             binCount = 2;
                             if ((p = ((TreeBin<K,V>)f).putTreeVal(hash, key,
-                                                           value)) != null) {
-                                oldVal = p.val;
+                                                           value)) != null) { // 如果新增，则直接这里面逻辑处理掉了
+                                oldVal = p.val; // 已经存在，则修改
                                 if (!onlyIfAbsent)
                                     p.val = value;
                             }
@@ -1062,7 +1062,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     if (binCount >= TREEIFY_THRESHOLD) // TREEIFY_THRESHOLD=8 列表长度>=8
                         treeifyBin(tab, i); // 数组长度<64扩容
                     if (oldVal != null)
-                        return oldVal;
+                        return oldVal;  // 返回旧值
                     break;
                 }
             }
@@ -2231,11 +2231,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                         int n = (sc > 0) ? sc : DEFAULT_CAPACITY; //默认是DEFAULT_CAPACITY=16
                         @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n]; // 初始化 默认DEFAULT_CAPACITY:16
-                        table = tab = nt;
-                        sc = n - (n >>> 2); // 默认n=DEFAULT_CAPACITY=16 16>>2=4   n=16-4=12  扩容的阈值
+                        table = tab = nt; // table.length第一次是16
+                        sc = n - (n >>> 2); // 默认n=DEFAULT_CAPACITY=16 16>>2=4   n=16-4=12  扩容的阈值  sc=12
                     }
                 } finally {
-                    sizeCtl = sc;
+                    sizeCtl = sc; // sizeCtl 第一次扩容后12
                 }
                 break;
             }
@@ -2899,9 +2899,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 TreeNode<K,V> xp = p;
                 if ((p = (dir <= 0) ? p.left : p.right) == null) {
                     TreeNode<K,V> x, f = first;
-                    first = x = new TreeNode<K,V>(h, k, v, f, xp);
+                    first = x = new TreeNode<K,V>(h, k, v, f, xp); // f.next = first、 f = next 、 xp = parent
                     if (f != null)
-                        f.prev = x;
+                        f.prev = x;  //  放到f的前置节点
                     if (dir <= 0)
                         xp.left = x;
                     else
