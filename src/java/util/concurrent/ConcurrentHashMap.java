@@ -557,7 +557,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     /**
      * The smallest table capacity for which bins may be treeified.
      * (Otherwise the table is resized if too many nodes in a bin.)
-     * The value should be at least 4 * TREEIFY_THRESHOLD to avoid
+     * The value should be at least 4 * TREEIFY_THRESHOLD to avoid  该值应至少为 4 * TREEIFY_THRESHOLD(8)
      * conflicts between resizing and treeification thresholds.
      */
     static final int MIN_TREEIFY_CAPACITY = 64;
@@ -1024,9 +1024,9 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 tab = helpTransfer(tab, f);
             else { // 也就是有头节点的  要么update 要么 add
                 V oldVal = null;
-                synchronized (f) { // 锁住当前的node节点避免线程安全问题
+                synchronized (f) { // 锁住当前的node节点，避免线程安全问题，其他头节点，其他线程还是可以进来
                     if (tabAt(tab, i) == f) { // 重新判断  针对链表来处理
-                        if (fh >= 0) {
+                        if (fh >= 0) { // node.hash=-2 (树)
                             binCount = 1;
                             for (Node<K,V> e = f;; ++binCount) { // 第一次进来后  binCount=1
                                 K ek; // 是否存在相同的key
@@ -2209,13 +2209,13 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
 
     /* ---------------- Table Initialization and Resizing -------------- */
 
-    /**
+    /** Integer.numberOfLeadingZeros(n): 二进制标识的从高位开始到第一个非0的数字的之间0的个数
      * Returns the stamp bits for resizing a table of size n.
      * Must be negative when shifted left by RESIZE_STAMP_SHIFT.
-     */
+     */ // 比如8 = 1000，则Integer.numberOfLeadingZeros(8) 返回28
     static final int resizeStamp(int n) {
         return Integer.numberOfLeadingZeros(n) | (1 << (RESIZE_STAMP_BITS - 1));
-    }
+    }// 1 << (RESIZE_STAMP_BITS - 1) 二进制的16位置为1  值为1,00000,00000,00000
 
     /**
      * Initializes table, using the size recorded in sizeCtl.
@@ -2319,7 +2319,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * 创建1个新的数组 然后把老的数据迁移过来
      * @param size number of elements (doesn't need to be perfectly accurate)
      */
-    private final void tryPresize(int size) { // 扩容
+    private final void tryPresize(int size) { // 扩容  size = table.length*2
         int c = (size >= (MAXIMUM_CAPACITY >>> 1)) ? MAXIMUM_CAPACITY :
             tableSizeFor(size + (size >>> 1) + 1); //没有达到最大值  扩容一倍  然后是2的n次方
         int sc;
@@ -2344,16 +2344,16 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 break;
             else if (tab == table) {
                 int rs = resizeStamp(n); // 唯一性  高位16表示当前的扩容标记-保证唯一性   低16位表示扩容的线程数量
-                if (sc < 0) {
+                if (sc < 0) { // 下面逻辑rs << RESIZE_STAMP_SHIFT) 左移16位，变负数
                     Node<K,V>[] nt;
                     if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
                         sc == rs + MAX_RESIZERS || (nt = nextTable) == null ||
                         transferIndex <= 0)
-                        break;
+                        break; // 表示扩容结束
                     if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1)) // 表示没有结束，每增加一个扩容线程，则在低位+1
                         transfer(tab, nt);
                 }
-                else if (U.compareAndSwapInt(this, SIZECTL, sc,
+                else if (U.compareAndSwapInt(this, SIZECTL, sc, // rs << RESIZE_STAMP_SHIFT) 左移16位，变负数
                                              (rs << RESIZE_STAMP_SHIFT) + 2)) // 第一次扩容 走这段逻辑 rs左移16位+2  第一次+2
                     transfer(tab, null); // 上面高位是1  是负数  走sc<0上面逻辑
             }
@@ -2365,10 +2365,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * above for explanation.
      */
     private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
-        int n = tab.length, stride;
+        int n = tab.length, stride; // 计算每个线程处理的数据区间大小，最小是16
         if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE)
             stride = MIN_TRANSFER_STRIDE; // subdivide range
-        if (nextTab == null) {            // initiating
+        if (nextTab == null) {            // initiating  表示扩容之后的数组,在原来的基础上，扩大2倍
             try {
                 @SuppressWarnings("unchecked")
                 Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n << 1];
@@ -2380,11 +2380,11 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             nextTable = nextTab;
             transferIndex = n;
         }
-        int nextn = nextTab.length;
+        int nextn = nextTab.length; // fwd用来表示已经迁移完成的状态，也就是说，如果某个old数组的节点完成了迁移，则需要更改成fwd
         ForwardingNode<K,V> fwd = new ForwardingNode<K,V>(nextTab);
         boolean advance = true;
         boolean finishing = false; // to ensure sweep before committing nextTab
-        for (int i = 0, bound = 0;;) {
+        for (int i = 0, bound = 0;;) { // transferIndex 等于old table[]长度
             Node<K,V> f; int fh;
             while (advance) {
                 int nextIndex, nextBound;
@@ -2402,7 +2402,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                     i = nextIndex - 1;
                     advance = false;
                 }
-            }
+            }// 假设数组长度是32  第一次[16,31]  第2次[0,15]
             if (i < 0 || i >= n || i + n >= nextn) {
                 int sc;
                 if (finishing) {
@@ -2612,7 +2612,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
         Node<K,V> b; int n, sc;
         if (tab != null) {
             if ((n = tab.length) < MIN_TREEIFY_CAPACITY) // table.length < 64 and >=8
-                tryPresize(n << 1); //扩容
+                tryPresize(n << 1); //扩容  table.length*2
             else if ((b = tabAt(tab, index)) != null && b.hash >= 0) { // >=64 转为红黑树
                 synchronized (b) { //转为红黑树
                     if (tabAt(tab, index) == b) {
