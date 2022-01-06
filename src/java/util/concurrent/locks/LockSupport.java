@@ -125,7 +125,7 @@ public class LockSupport {
         UNSAFE.putObject(t, parkBlockerOffset, arg);
     }
 
-    /**
+    /** 结论，只有在线程启动后，unpark()先于park()调用，第一个park()才不会阻塞
      * Makes available the permit for the given thread, if it
      * was not already available.  If the thread was blocked on
      * {@code park} then it will unblock.  Otherwise, its next call
