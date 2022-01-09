@@ -1067,7 +1067,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 }
             }
         }
-        addCount(1L, binCount);
+        addCount(1L, binCount); // 会扩容table[] ，如果每个table的每个格子，长度都小于8 ，则会进入这里扩容table[]
         return null;
     }
 
@@ -2228,7 +2228,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
             else if (U.compareAndSwapInt(this, SIZECTL, sc, -1)) { // 通过cas自旋(通过cas来占用一个锁的标记)
                 try { // 当前线程抢到了锁
                     if ((tab = table) == null || tab.length == 0) {
-                        int n = (sc > 0) ? sc : DEFAULT_CAPACITY; //默认是DEFAULT_CAPACITY=16
+                        int n = (sc > 0) ? sc : DEFAULT_CAPACITY; //默认构造函数  第一次默认是n=DEFAULT_CAPACITY=16  非默认构造函数，则sc>0
                         @SuppressWarnings("unchecked")
                         Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n]; // 初始化 默认DEFAULT_CAPACITY:16
                         table = tab = nt; // table.length第一次是16
@@ -2285,7 +2285,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 }
                 else if (U.compareAndSwapInt(this, SIZECTL, sc,
                                              (rs << RESIZE_STAMP_SHIFT) + 2))
-                    transfer(tab, null);
+                    transfer(tab, null);  // 扩容 n << 1
                 s = sumCount();
             }
         }
@@ -2364,61 +2364,61 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Moves and/or copies the nodes in each bin to new table. See
      * above for explanation.
      */
-    private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) {
+    private final void transfer(Node<K,V>[] tab, Node<K,V>[] nextTab) { // 2288 对tab扩容，nextTab是null
         int n = tab.length, stride; // 计算每个线程处理的数据区间大小，最小是16
-        if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE)
-            stride = MIN_TRANSFER_STRIDE; // subdivide range
+        if ((stride = (NCPU > 1) ? (n >>> 3) / NCPU : n) < MIN_TRANSFER_STRIDE) // 将 (n>>>3相当于 n/8) 然后除以 CPU核心数。如果得到的结果小于 16，那么就使用 16
+            stride = MIN_TRANSFER_STRIDE; // subdivide range  最小是16
         if (nextTab == null) {            // initiating  表示扩容之后的数组,在原来的基础上，扩大2倍
             try {
                 @SuppressWarnings("unchecked")
-                Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n << 1];
-                nextTab = nt;
+                Node<K,V>[] nt = (Node<K,V>[])new Node<?,?>[n << 1]; // 扩容
+                nextTab = nt; //赋值给nextTab
             } catch (Throwable ex) {      // try to cope with OOME
-                sizeCtl = Integer.MAX_VALUE;
+                sizeCtl = Integer.MAX_VALUE; //扩容失败，sizeCtl使用int的最大值
                 return;
             }
-            nextTable = nextTab;
-            transferIndex = n;
+            nextTable = nextTab;  //更新成员变量
+            transferIndex = n; // 更新转移下标，表示转移时的下标
         }
         int nextn = nextTab.length; // fwd用来表示已经迁移完成的状态，也就是说，如果某个old数组的节点完成了迁移，则需要更改成fwd
-        ForwardingNode<K,V> fwd = new ForwardingNode<K,V>(nextTab);
-        boolean advance = true;
-        boolean finishing = false; // to ensure sweep before committing nextTab
-        for (int i = 0, bound = 0;;) { // transferIndex 等于old table[]长度
+        ForwardingNode<K,V> fwd = new ForwardingNode<K,V>(nextTab); // // 创建一个 fwd 节点，表示一个正在被迁移的Node，并且它的hash值为-1(MOVED)，也就是前面我们在讲putval方法的时候，会有一个判断MOVED的逻辑。它的作用是用来占位，表示原数组中位置i处的节点完成迁移以后，就会在i位置设置一个fwd来告诉其他线程这个位置已经处理过了
+        boolean advance = true; // // 首次推进为 true，如果等于 true，说明需要再次推进一个下标（i--），反之，如果是 false，那么就不能推进下标，需要将当前的下标处理完毕才能继续推进
+        boolean finishing = false; // to ensure sweep before committing nextTab //判断是否已经扩容完成，完成就return，退出循环
+        for (int i = 0, bound = 0;;) { // transferIndex 等于old table[]长度  /通过for自循环处理每个槽位中的链表元素，默认advace为真，通过CAS设置transferIndex属性值，并初始化i和bound值，i指当前处理的槽位序号，bound指需要处理的槽位边界，先处理槽位15的节点；
             Node<K,V> f; int fh;
-            while (advance) {
-                int nextIndex, nextBound;
-                if (--i >= bound || finishing)
+            while (advance) { // 这个循环使用CAS不断尝试为当前线程分配任务 直到分配成功或任务队列已经被全部分配完毕
+                int nextIndex, nextBound; // 如果当前线程已经被分配过bucket区域 那么会通过--i 指向下一个待处理bucket然后退出该循环
+                if (--i >= bound || finishing) //--i表示下一个待处理的bucket，如果它>=bound,表示当前线程已经分配过bucket区域
                     advance = false;
-                else if ((nextIndex = transferIndex) <= 0) {
+                else if ((nextIndex = transferIndex) <= 0) { //表示所有bucket已经被分配完毕 给nextIndex赋予初始值 = 16
                     i = -1;
                     advance = false;
                 }
-                else if (U.compareAndSwapInt
+                else if (U.compareAndSwapInt //通过cas来修改TRANSFERINDEX,为当前线程分配任务，处理的节点区间为(nextBound,nextIndex)->(0,15)
                          (this, TRANSFERINDEX, nextIndex,
                           nextBound = (nextIndex > stride ?
                                        nextIndex - stride : 0))) {
-                    bound = nextBound;
-                    i = nextIndex - 1;
+                    bound = nextBound; // 0
+                    i = nextIndex - 1; // 15
                     advance = false;
                 }
             }// 假设数组长度是32  第一次[16,31]  第2次[0,15]
-            if (i < 0 || i >= n || i + n >= nextn) {
+            if (i < 0 || i >= n || i + n >= nextn) { //i<0说明已经遍历完旧的数组，也就是当前线程已经处理完所有负责的bucket
                 int sc;
-                if (finishing) {
-                    nextTable = null;
-                    table = nextTab;
-                    sizeCtl = (n << 1) - (n >>> 1);
+                if (finishing) { //如果完成了扩容
+                    nextTable = null; //删除成员变量
+                    table = nextTab; //更新table数组
+                    sizeCtl = (n << 1) - (n >>> 1);  // 更新阈值(n*0.75)
                     return;
-                }
-                if (U.compareAndSwapInt(this, SIZECTL, sc = sizeCtl, sc - 1)) {
+                } // sizeCtl 在迁移前会设置为 (rs << RESIZE_STAMP_SHIFT) + 2 ，每增加一个线程参与迁移就会将 sizeCtl 加 1
+                if (U.compareAndSwapInt(this, SIZECTL, sc = sizeCtl, sc - 1)) { // 这里使用 CAS 操作对 sizeCtl 的低16位进行减 1，代表做完了属于自己的任务
                     if ((sc - 2) != resizeStamp(n) << RESIZE_STAMP_SHIFT)
-                        return;
-                    finishing = advance = true;
-                    i = n; // recheck before commit
+                        return; // 如果 sc - 2 不等于标识符左移 16 位。如果他们相等了，说明没有线程在帮助他们扩容了。也就是说，扩容结束了
+                    finishing = advance = true; // 扩容结束，更新 finising 变量
+                    i = n; // recheck before commit // 再次循环检查一下整张表
                 }
             }
-            else if ((f = tabAt(tab, i)) == null)
+            else if ((f = tabAt(tab, i)) == null) // 如果位置 i 处是空的，没有任何节点，那么放入刚刚初始化的 ForwardingNode ”空节点“
                 advance = casTabAt(tab, i, null, fwd);
             else if ((fh = f.hash) == MOVED)
                 advance = true; // already processed
