@@ -994,7 +994,7 @@ public abstract class AbstractQueuedSynchronizer
                     }
                 }
                 if (shouldParkAfterFailedAcquire(p, node) &&
-                    parkAndCheckInterrupt())
+                    parkAndCheckInterrupt()) // Thread.interrupted()
                     throw new InterruptedException();
             }
         } finally {
@@ -1338,7 +1338,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return the value returned from {@link #tryReleaseShared}
      */
     public final boolean releaseShared(int arg) {
-        if (tryReleaseShared(arg)) {
+        if (tryReleaseShared(arg)) { // doReleaseShared: 唤醒所有持有共享锁的线程
             doReleaseShared(); // 唤醒共享锁  从这里就可以看出，在共享锁模式下，不仅释放锁的方法可以唤醒节点，加锁的方法也会触发唤醒后续节点的操作
             return true;
         }

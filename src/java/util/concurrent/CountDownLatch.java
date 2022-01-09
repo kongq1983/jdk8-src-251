@@ -181,7 +181,7 @@ public class CountDownLatch {
                     return false;
                 int nextc = c-1;
                 if (compareAndSetState(c, nextc))
-                    return nextc == 0;
+                    return nextc == 0; // 当前是最后1个线程的时候，并且释放完==0
             }
         }
     }

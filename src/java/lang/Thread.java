@@ -1217,9 +1217,6 @@ class Thread implements Runnable {
     @Deprecated
     public native int countStackFrames();
 
-<<<<<<< HEAD
-    /**  注意这里是synchronized  加了synzhroinzed
-=======
     /** 其实就是调用wait
 >>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
      * Waits at most {@code millis} milliseconds for this thread to

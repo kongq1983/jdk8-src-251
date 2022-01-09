@@ -470,10 +470,10 @@ public class ReentrantReadWriteLock
             if (!readerShouldBlock() && // 非公平: head.next是共享锁
                 r < MAX_COUNT &&  // MAX_COUNT=65535  SHARED_UNIT=65536 相当于左边的1
                 compareAndSetState(c, c + SHARED_UNIT)) { // 每次都加65536    c+65536  第一次c=0 第2次c=65536  第3次c=65536+65536  第4次c=65536+65536+65536 以此类推
-                if (r == 0) {
+                if (r == 0) { // 第一个单独拎出来
                     firstReader = current;
                     firstReaderHoldCount = 1;
-                } else if (firstReader == current) { // 同个线程多次持有读锁
+                } else if (firstReader == current) { // 同个线程多次持有读锁 第一个线程重入
                     firstReaderHoldCount++;
                 } else {
                     HoldCounter rh = cachedHoldCounter;
@@ -485,7 +485,7 @@ public class ReentrantReadWriteLock
                 }
                 return 1;
             }
-            return fullTryAcquireShared(current);
+            return fullTryAcquireShared(current); // 读锁加锁失败
         }
 
         /**
