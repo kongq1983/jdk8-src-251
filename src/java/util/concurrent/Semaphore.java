@@ -183,7 +183,7 @@ public class Semaphore implements java.io.Serializable {
                     return remaining;
             }
         }
-
+        // 归还数量
         protected final boolean tryReleaseShared(int releases) {
             for (;;) {
                 int current = getState();
@@ -245,10 +245,10 @@ public class Semaphore implements java.io.Serializable {
                 if (hasQueuedPredecessors())
                     return -1;
                 int available = getState();
-                int remaining = available - acquires;
+                int remaining = available - acquires; // available=剩余数量  acquires=本次数量
                 if (remaining < 0 ||
                     compareAndSetState(available, remaining))
-                    return remaining;
+                    return remaining; // 返回负数，要阻塞，正数不阻塞
             }
         }
     }
@@ -309,7 +309,7 @@ public class Semaphore implements java.io.Serializable {
      * @throws InterruptedException if the current thread is interrupted
      */
     public void acquire() throws InterruptedException {
-        sync.acquireSharedInterruptibly(1);
+        sync.acquireSharedInterruptibly(1); // 共享
     }
 
     /**

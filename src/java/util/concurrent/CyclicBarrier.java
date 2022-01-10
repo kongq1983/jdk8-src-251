@@ -176,7 +176,7 @@ public class CyclicBarrier {
      */
     private void nextGeneration() {
         // signal completion of last generation
-        trip.signalAll();
+        trip.signalAll(); // 条件队列 -> 同步队列
         // set up next generation
         count = parties;
         generation = new Generation();
@@ -231,7 +231,7 @@ public class CyclicBarrier {
             for (;;) {
                 try {
                     if (!timed)
-                        trip.await();
+                        trip.await(); // 会先释放锁 进入条件队列
                     else if (nanos > 0L)
                         nanos = trip.awaitNanos(nanos);
                 } catch (InterruptedException ie) {

@@ -1300,7 +1300,7 @@ public abstract class AbstractQueuedSynchronizer
             throws InterruptedException {
         if (Thread.interrupted())
             throw new InterruptedException(); // Semaphore 返回 (state - acquires)
-        if (tryAcquireShared(arg) < 0)  // (getState() == 0) ? 1 : -1  只有state=0，才会返回true，否则都要进入休眠
+        if (tryAcquireShared(arg) < 0)  // Semaphore:(state - acquires) 返回true，否则都要进入休眠  CountDownLatch: (getState() == 0) ? 1 : -1  只有state=0，才会返回true，否则都要进入休眠
             doAcquireSharedInterruptibly(arg);
     }
 
@@ -1338,7 +1338,7 @@ public abstract class AbstractQueuedSynchronizer
      * @return the value returned from {@link #tryReleaseShared}
      */
     public final boolean releaseShared(int arg) {
-        if (tryReleaseShared(arg)) { // doReleaseShared: 唤醒所有持有共享锁的线程
+        if (tryReleaseShared(arg)) { // Semaphore:归还数量 CountDownLatch: 最后1个线程释放，才返回true
             doReleaseShared(); // 唤醒共享锁  从这里就可以看出，在共享锁模式下，不仅释放锁的方法可以唤醒节点，加锁的方法也会触发唤醒后续节点的操作
             return true;
         }
@@ -1515,7 +1515,7 @@ public abstract class AbstractQueuedSynchronizer
         // thread is first in queue.
         Node t = tail; // Read fields in reverse initialization order
         Node h = head;
-        Node s;
+        Node s; // head != tail && head.next==null || 不是当前线程
         return h != t &&
             ((s = h.next) == null || s.thread != Thread.currentThread());
     }
@@ -1926,7 +1926,7 @@ public abstract class AbstractQueuedSynchronizer
 
         // public methods
 
-        /**
+        /** 条件队列 -> 同步队列
          * Moves the longest-waiting thread, if one exists, from the
          * wait queue for this condition to the wait queue for the
          * owning lock.
@@ -1942,7 +1942,7 @@ public abstract class AbstractQueuedSynchronizer
                 doSignal(first);
         }
 
-        /**
+        /** 条件队列 -> 同步队列
          * Moves all threads from the wait queue for this condition to
          * the wait queue for the owning lock.
          *
