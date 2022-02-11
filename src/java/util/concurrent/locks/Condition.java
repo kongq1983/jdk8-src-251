@@ -449,7 +449,7 @@ public interface Condition {
      */
     boolean awaitUntil(Date deadline) throws InterruptedException;
 
-    /**
+    /** 条件队列 -> 同步队列
      * Wakes up one waiting thread.
      *
      * <p>If any threads are waiting on this condition then one
@@ -467,7 +467,7 @@ public interface Condition {
      */
     void signal();
 
-    /**
+    /** 条件队列 -> 同步队列
      * Wakes up all waiting threads.
      *
      * <p>If any threads are waiting on this condition then they are
