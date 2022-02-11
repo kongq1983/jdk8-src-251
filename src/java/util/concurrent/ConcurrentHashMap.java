@@ -581,12 +581,12 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * The maximum number of threads that can help resize.
      * Must fit in 32 - RESIZE_STAMP_BITS bits.
      */
-    private static final int MAX_RESIZERS = (1 << (32 - RESIZE_STAMP_BITS)) - 1;
+    private static final int MAX_RESIZERS = (1 << (32 - RESIZE_STAMP_BITS)) - 1; // RESIZE_STAMP_BITS = 16   MAX_RESIZERS = 65535 = 1111 1111 1111 1111
 
     /**
      * The bit shift for recording size stamp in sizeCtl.
      */
-    private static final int RESIZE_STAMP_SHIFT = 32 - RESIZE_STAMP_BITS;
+    private static final int RESIZE_STAMP_SHIFT = 32 - RESIZE_STAMP_BITS; // 32 -16
 
     /*
      * Encodings for Node hash fields. See above for explanation.
@@ -2214,7 +2214,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Must be negative when shifted left by RESIZE_STAMP_SHIFT.
      */ // 比如8 = 1000，则Integer.numberOfLeadingZeros(8) 返回28
     static final int resizeStamp(int n) {
-        return Integer.numberOfLeadingZeros(n) | (1 << (RESIZE_STAMP_BITS - 1));
+        return Integer.numberOfLeadingZeros(n) | (1 << (RESIZE_STAMP_BITS - 1)); // 1 << (RESIZE_STAMP_BITS - 1) = 1 << 15 = 32,768 = 1000 0000 0000 0000
     }// 1 << (RESIZE_STAMP_BITS - 1) 二进制的16位置为1  值为1,00000,00000,00000
 
     /**
@@ -2253,10 +2253,10 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * @param x the count to add
      * @param check if <0, don't check resize, if <= 1 only check if uncontended
      */
-    private final void addCount(long x, int check) {
+    private final void addCount(long x, int check) { // 传进来的check = binCount = 2
         CounterCell[] as; long b, s;
         if ((as = counterCells) != null ||
-            !U.compareAndSwapLong(this, BASECOUNT, b = baseCount, s = b + x)) {
+            !U.compareAndSwapLong(this, BASECOUNT, b = baseCount, s = b + x)) { // s = b + x这个是当前存入 key-value的总数
             CounterCell a; long v; int m;
             boolean uncontended = true;
             if (as == null || (m = as.length - 1) < 0 ||
@@ -2270,21 +2270,21 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 return;
             s = sumCount();
         }
-        if (check >= 0) {
+        if (check >= 0) { // 这个肯定满足
             Node<K,V>[] tab, nt; int n, sc;
-            while (s >= (long)(sc = sizeCtl) && (tab = table) != null &&
+            while (s >= (long)(sc = sizeCtl) && (tab = table) != null && // 达到扩容的阈值  在数组初始化之后，sizeCtl 是扩容的阈值
                    (n = tab.length) < MAXIMUM_CAPACITY) {
-                int rs = resizeStamp(n);
+                int rs = resizeStamp(n); // 二进制标识的从高位开始到第一个非0的数字的之间0的个数
                 if (sc < 0) {
-                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 ||
-                        sc == rs + MAX_RESIZERS || (nt = nextTable) == null ||
+                    if ((sc >>> RESIZE_STAMP_SHIFT) != rs || sc == rs + 1 || // RESIZE_STAMP_SHIFT = 16
+                        sc == rs + MAX_RESIZERS || (nt = nextTable) == null || // MAX_RESIZERS = 65535 = 1111 1111 1111 1111
                         transferIndex <= 0)
                         break;
                     if (U.compareAndSwapInt(this, SIZECTL, sc, sc + 1))
                         transfer(tab, nt);
                 }
                 else if (U.compareAndSwapInt(this, SIZECTL, sc,
-                                             (rs << RESIZE_STAMP_SHIFT) + 2))
+                                             (rs << RESIZE_STAMP_SHIFT) + 2)) // RESIZE_STAMP_SHIFT = 16
                     transfer(tab, null);  // 扩容 n << 1
                 s = sumCount();
             }
@@ -2377,8 +2377,8 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
                 sizeCtl = Integer.MAX_VALUE; //扩容失败，sizeCtl使用int的最大值
                 return;
             }
-            nextTable = nextTab;  //更新成员变量
-            transferIndex = n; // 更新转移下标，表示转移时的下标
+            nextTable = nextTab;  //更新成员变量 新的临时table[]
+            transferIndex = n; // 要转移的数量
         }
         int nextn = nextTab.length; // fwd用来表示已经迁移完成的状态，也就是说，如果某个old数组的节点完成了迁移，则需要更改成fwd
         ForwardingNode<K,V> fwd = new ForwardingNode<K,V>(nextTab); // // 创建一个 fwd 节点，表示一个正在被迁移的Node，并且它的hash值为-1(MOVED)，也就是前面我们在讲putval方法的时候，会有一个判断MOVED的逻辑。它的作用是用来占位，表示原数组中位置i处的节点完成迁移以后，就会在i位置设置一个fwd来告诉其他线程这个位置已经处理过了

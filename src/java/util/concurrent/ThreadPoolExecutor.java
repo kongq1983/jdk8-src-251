@@ -920,7 +920,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
                 return false;
             // 进入这里条件 只有 RUNNING  或者 ( SHUTDOWN &&  firstTask==null && workQueue不为空 )
 //>>>>>>> df4ccba21535636013d889f5718048c2f3466dc4
-            for (;;) {
+            for (;;) { //****** 进入这里 rs < SHUTDOWN || rs=SHUTDOWN && firstTask!=null && workQueue.size()==0  || SHUTDOWN &&  firstTask==null && workQueue不为空
                 int wc = workerCountOf(c);  // 获取工作线程数
                 if (wc >= CAPACITY ||
                     wc >= (core ? corePoolSize : maximumPoolSize)) // 是否核心线程
@@ -1153,7 +1153,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
         boolean completedAbruptly = true;  // 如果下面不执行  所有线程执行完成 就结束了
         try { // 执行结束 task==null 第一次是firstTask
             while (task != null || (task = getTask()) != null) {  //getTask如果allowCoreThreadTimeOut=false，会一直等待 因为是take
-                w.lock();
+                w.lock(); // 这里加锁，中断线程的时候，如果是shotdown()会tryLock，如果tryLock成功，则说明是空闲的
                 // If pool is stopping, ensure thread is interrupted;
                 // if not, ensure thread is not interrupted.  This
                 // requires a recheck in second case to deal with
@@ -1411,7 +1411,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *
      * @throws SecurityException {@inheritDoc}
      */
-    public void shutdown() {
+    public void shutdown() { // 不会中断正在运行中的线程
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();
         try {
@@ -1442,7 +1442,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
      *
      * @throws SecurityException {@inheritDoc}
      */
-    public List<Runnable> shutdownNow() {
+    public List<Runnable> shutdownNow() { // 中断所有线程
         List<Runnable> tasks;
         final ReentrantLock mainLock = this.mainLock;
         mainLock.lock();

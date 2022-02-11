@@ -199,39 +199,39 @@ public class CyclicBarrier {
         throws InterruptedException, BrokenBarrierException,
                TimeoutException {
         final ReentrantLock lock = this.lock;
-        lock.lock();
+        lock.lock(); // 通过锁来保证 每轮count个处理，最后1个唤醒
         try {
             final Generation g = generation;
 
-            if (g.broken)
+            if (g.broken) // 已经reset了
                 throw new BrokenBarrierException();
 
-            if (Thread.interrupted()) {
+            if (Thread.interrupted()) { // 线程中断了
                 breakBarrier();
                 throw new InterruptedException();
             }
 
             int index = --count;
-            if (index == 0) {  // tripped
+            if (index == 0) {  // tripped  本轮最后1个到达
                 boolean ranAction = false;
                 try {
-                    final Runnable command = barrierCommand;
+                    final Runnable command = barrierCommand;  // 先统一处理任务
                     if (command != null)
                         command.run();
                     ranAction = true;
-                    nextGeneration();
+                    nextGeneration();  // 开始下一轮  trip.signalAll(); 唤醒
                     return 0;
                 } finally {
                     if (!ranAction)
                         breakBarrier();
                 }
             }
-
+            // todo 非本轮最后到这里
             // loop until tripped, broken, interrupted, or timed out
             for (;;) {
                 try {
                     if (!timed)
-                        trip.await();
+                        trip.await();  // 没指定时间走这里 Condition
                     else if (nanos > 0L)
                         nanos = trip.awaitNanos(nanos);
                 } catch (InterruptedException ie) {
@@ -466,8 +466,8 @@ public class CyclicBarrier {
         final ReentrantLock lock = this.lock;
         lock.lock();
         try {
-            breakBarrier();   // break the current generation
-            nextGeneration(); // start a new generation
+            breakBarrier();   // break the current generation | generation.broken = true; | trip.signalAll();
+            nextGeneration(); // start a new generation | generation = new Generation(); | trip.signalAll();
         } finally {
             lock.unlock();
         }
