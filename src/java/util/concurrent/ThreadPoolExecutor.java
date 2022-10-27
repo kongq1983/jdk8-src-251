@@ -390,7 +390,7 @@ public class ThreadPoolExecutor extends AbstractExecutorService {
     private static final int TERMINATED =  3 << COUNT_BITS; // 1610612736   011
 
     // Packing and unpacking ctl
-    private static int runStateOf(int c)     { return c & ~CAPACITY; } // 高3位
+    private static int runStateOf(int c)     { return c & ~CAPACITY; } // 高3位  1 << COUNT_BITS) - 1
     private static int workerCountOf(int c)  { return c & CAPACITY; } // 第29位
     private static int ctlOf(int rs, int wc) { return rs | wc; }
 

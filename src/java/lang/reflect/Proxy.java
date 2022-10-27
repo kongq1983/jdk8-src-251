@@ -550,7 +550,7 @@ public class Proxy implements java.io.Serializable {
         }
     }
 
-    /**
+    /**  动态生成类
      * A factory function that generates, defines and returns the proxy class given
      * the ClassLoader and array of interfaces.
      */

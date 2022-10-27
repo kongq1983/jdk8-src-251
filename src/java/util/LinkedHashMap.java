@@ -198,12 +198,12 @@ public class LinkedHashMap<K,V>
 
     private static final long serialVersionUID = 3801124242820219131L;
 
-    /**
+    /** LinkedHashMap真正核心就是这2个属性
      * The head (eldest) of the doubly linked list.
      */
     transient LinkedHashMap.Entry<K,V> head;
 
-    /**
+    /** LinkedHashMap真正核心就是这2个属性
      * The tail (youngest) of the doubly linked list.
      */
     transient LinkedHashMap.Entry<K,V> tail;
@@ -251,7 +251,7 @@ public class LinkedHashMap<K,V>
         super.reinitialize();
         head = tail = null;
     }
-
+    // newNode
     Node<K,V> newNode(int hash, K key, V value, Node<K,V> e) {
         LinkedHashMap.Entry<K,V> p =
             new LinkedHashMap.Entry<K,V>(hash, key, value, e);

@@ -242,7 +242,7 @@ public class Semaphore implements java.io.Serializable {
 
         protected int tryAcquireShared(int acquires) {
             for (;;) {
-                if (hasQueuedPredecessors())
+                if (hasQueuedPredecessors())  // 前面有现场，说明是已经入队列了 node是SHARD 也就是前面超过了最大数量
                     return -1;
                 int available = getState();
                 int remaining = available - acquires; // available=剩余数量  acquires=本次数量

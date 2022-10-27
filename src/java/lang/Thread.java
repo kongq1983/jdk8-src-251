@@ -750,9 +750,9 @@ class Thread implements Runnable {
     }
 
     /**
-     * This method is called by the system to give a Thread
+     * This method is called by the system to give a Thread  系统调用此方法是为了让线程有机会在实际退出之前进行清理
      * a chance to clean up before it actually exits.
-     */
+     */ // 系统调用此方法是为了让线程有机会在实际退出之前进行清理
     private void exit() {
         if (group != null) {
             group.threadTerminated(this);

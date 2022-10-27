@@ -228,7 +228,7 @@ public class ArrayList<E> extends AbstractList<E>
     }
 
     private void ensureCapacityInternal(int minCapacity) {
-        ensureExplicitCapacity(calculateCapacity(elementData, minCapacity));
+        ensureExplicitCapacity(calculateCapacity(elementData, minCapacity)); // calculateCapacity最小为10
     }
 
     private void ensureExplicitCapacity(int minCapacity) {

@@ -2163,7 +2163,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
     static final class ForwardingNode<K,V> extends Node<K,V> {
         final Node<K,V>[] nextTable;
         ForwardingNode(Node<K,V>[] tab) {
-            super(MOVED, null, null, null);
+            super(MOVED, null, null, null); // MOVED = -1
             this.nextTable = tab;
         }
 
@@ -2213,7 +2213,7 @@ public class ConcurrentHashMap<K,V> extends AbstractMap<K,V>
      * Returns the stamp bits for resizing a table of size n.
      * Must be negative when shifted left by RESIZE_STAMP_SHIFT.
      */ // 比如8 = 1000，则Integer.numberOfLeadingZeros(8) 返回28
-    static final int resizeStamp(int n) {
+    static final int resizeStamp(int n) { // 唯一性  高位16表示当前的扩容标记-保证唯一性   低16位表示扩容的线程数量
         return Integer.numberOfLeadingZeros(n) | (1 << (RESIZE_STAMP_BITS - 1)); // 1 << (RESIZE_STAMP_BITS - 1) = 1 << 15 = 32,768 = 1000 0000 0000 0000
     }// 1 << (RESIZE_STAMP_BITS - 1) 二进制的16位置为1  值为1,00000,00000,00000
 
